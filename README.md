@@ -131,14 +131,25 @@ from the last started gameweek (which is your team until you transfer).
 
 ---
 
-## Known limitations (v0.1)
+## Model quality
 
-* **Early-season xP is heavily anchored to FPL's own `ep_next`** — with only 2–3
-  matches played, per-90 rates are shrunk hard toward positional priors and the
-  model leans on `ep_next`. It gets its own voice back as the season accrues
-  minutes. Prior-season per-90 import is the obvious next improvement
-  (`fpl_api.element_summary` per player, or a static file).
-* **Price changes over the horizon are not modelled** — buys use `now_cost`.
+Per-90 rates are shrunk toward each player's **own last-season output**
+(`data/priors.json`, rebuilt monthly by `scripts/refresh_priors.py`), not a flat
+positional average — so a proven forward isn't written off after two quiet
+games. `scripts/backtest.py` scores the model against every finished gameweek
+(`data/backtest_latest.md`).
+
+Current backtest (GW1–2, tiny sample): rank correlation ≈ 0.18, MAE ≈ 2.2 pts,
+near-zero bias. Single-GW FPL scoring is mostly luck, so the model is built to
+pay off over the **5-GW transfer horizon**, not any one week. Trust the
+captain / XI / fixture read now; sanity-check transfer and chip calls until
+~GW6, when there's enough backtest data to tune the knobs.
+
+## Known limitations
+
+* **Price changes over the horizon are not modelled** — buys use `now_cost`
+  (the *timing* of a price move is flagged in the email; the size isn't priced
+  into the plan).
 * **Free Hit is approximated** as a one-week wildcard; the solver is told the
   squad reverts but doesn't re-optimise the revert.
 * **Free-transfer recursion in the MIP is linearised** with big-M and is

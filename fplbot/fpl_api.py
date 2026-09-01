@@ -76,7 +76,7 @@ def event_status() -> dict:
     return _get("/event-status/")
 
 
-@lru_cache(maxsize=256)
+@lru_cache(maxsize=1024)
 def element_summary(element_id: int) -> dict:
     """Per-player history: `history` (this season, per GW) + `fixtures` (upcoming)."""
     return _get(f"/element-summary/{element_id}/")

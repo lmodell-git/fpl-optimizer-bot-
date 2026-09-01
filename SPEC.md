@@ -56,9 +56,12 @@ xP(player, gw) = P(appears) · appearance_pts
   `status` / `chance_of_playing_next_round` with season start-rate and
   minutes-per-game consistency. A rotation risk is dragged down hard.
 * **Underlying over actual.** Attacking rate = 0.85·xG/xA-per-90 + 0.15·actual,
-  then **shrunk toward a positional prior** by sample size
-  (`_shrink`, half-weight at `shrink_minutes` = 300 min). This is what stops a
-  1-minute cameo with `xG90 = 15` blowing up the optimiser.
+  then **shrunk toward that player's own last-season per-90** (`fplbot/priors.py`,
+  built from `element-summary` `history_past`, half-weight at `shrink_minutes` =
+  300 min). Falls back to a positional constant for promoted-team / new-signing
+  players with no PL history. This is what stops a 1-minute cameo with
+  `xG90 = 15` blowing up the optimiser *and* keeps a proven 20-goal forward from
+  being flattened to average after two quiet games.
 * **Set-piece duty** added after shrinkage (penalty taker +0.9 xP/90, corners/FK
   +0.15) — it's a role, not a sample.
 * **Fixtures, not raw FDR.** `fixture_mult` = (my attack strength ÷ opponent
@@ -68,10 +71,19 @@ xP(player, gw) = P(appears) · appearance_pts
   harder when our own sample is thin and fading across the horizon.
 * Per-fixture xP hard-clamped at `max_fixture_xp` (13) as a blow-up guard.
 
-**Known gap:** with 2–3 games played the anchor + shrinkage dominate, so the
-early-season squad is close to "trust FPL's form column". Importing last
-season's per-90s (via `fpl_api.element_summary` or a static CSV) is the intended
-fix and the cleanest next task.
+**Backtest** (`fplbot/backtest.py`, `scripts/backtest.py`): rebuilds an
+as-of projection for every finished GW from `element-summary` history and scores
+it against actual points — Spearman rank correlation, MAE, per-position bias,
+top-15 overlap. `data/backtest_latest.md` is refreshed monthly by the
+`refresh-priors-and-backtest` workflow alongside `priors.json`.
+
+**Honest state (GW1–2, n=2 so directional):** rank correlation ≈ 0.18, near-zero
+bias, MAE ≈ 2.2 pts/player. Single-gameweek FPL scoring is mostly variance (one
+goal + clean sheet + bonus is largely luck), so this is expected — the model
+earns its keep over the 5-GW transfer horizon, not week to week. Correlation was
+higher in GW2 than GW1 (more data), which is the signal to watch as the season
+runs. Knob tuning (`api_anchor_weight`, `shrink_minutes`, `fixture_swing`)
+waits for ~6+ GWs of backtest data.
 
 ## Optimisation engine (implemented — `fplbot/optimizer.py`, `fplbot/transfers.py`)
 

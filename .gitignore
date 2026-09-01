@@ -8,3 +8,4 @@ venv/
 # scratch data dumps
 scratch/
 *.local.json
+data/_element_summaries_raw.json   # 9 MB intermediate; priors.json is the kept artifact

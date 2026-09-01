@@ -27,7 +27,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Iterable
 
-from . import fpl_api
+from . import fpl_api, priors
 
 # FPL scoring: points for a goal / clean sheet, by position.
 GOAL_PTS = {"GKP": 6, "DEF": 6, "MID": 5, "FWD": 4}
@@ -42,7 +42,7 @@ DEFCON_PTS = 2
 class Params:
     horizon: int = 5                 # gameweeks to look ahead
     decay: float = 0.84              # weight of GW n+k is decay**k
-    api_anchor_weight: float = 0.35  # blend toward FPL's own ep_next for the first GW
+    api_anchor_weight: float = 0.22  # blend toward FPL's own ep_next (lower now priors exist)
     bench_weight: float = 0.15       # how much bench xP counts in the objective
     min_minutes_full: int = 60       # "played 60+" threshold for the 2nd appearance pt
     penalty_bonus_p90: float = 0.9   # extra xP/90 for the nailed penalty taker
@@ -120,7 +120,8 @@ def _strength(team: dict, kind: str, home: bool) -> float:
 # Minutes model                                                              #
 # --------------------------------------------------------------------------- #
 
-def _start_probability(p: dict, games_so_far: int, params: Params) -> tuple[float, list[str]]:
+def _start_probability(p: dict, games_so_far: int, params: Params,
+                       prior: dict | None) -> tuple[float, list[str]]:
     notes: list[str] = []
     status = p.get("status", "a")
     chance = p.get("chance_of_playing_next_round")
@@ -137,21 +138,22 @@ def _start_probability(p: dict, games_so_far: int, params: Params) -> tuple[floa
     else:
         base = 1.0
 
-    # Season minutes consistency: starts and minutes-per-game so far.
+    # Minutes consistency: this season's starts/minutes, shrunk toward last
+    # season's start rate while the current sample is thin.
+    mins = p.get("minutes", 0)
+    starts = p.get("starts", 0)
+    prior_rate = prior["start_rate"] if prior else 0.62
     if games_so_far > 0:
-        mins = p.get("minutes", 0)
-        starts = p.get("starts", 0)
-        start_rate = starts / games_so_far
-        mins_rate = min(1.0, mins / (games_so_far * 90.0))
-        consistency = 0.55 * start_rate + 0.45 * mins_rate
-        # Blend: a nailed history lifts a clean flag; a spotty one drags it down.
-        base *= 0.35 + 0.65 * consistency
-        if start_rate < 0.5:
+        w = min(1.0, games_so_far / 6.0)          # trust this season fully by ~GW6
+        this_rate = 0.55 * (starts / games_so_far) + 0.45 * min(1.0, mins / (games_so_far * 90.0))
+        consistency = w * this_rate + (1 - w) * prior_rate
+        if starts / games_so_far < 0.5 and w > 0.4:
             notes.append(f"started {starts}/{games_so_far} — rotation risk")
     else:
-        base *= 0.7
-        notes.append("no games yet this season — minutes uncertain")
-
+        consistency = prior_rate
+        notes.append("pre-season — using last-year start rate" if prior
+                     else "no history — minutes uncertain")
+    base *= 0.30 + 0.70 * consistency
     return max(0.0, min(1.0, base)), notes
 
 
@@ -181,7 +183,8 @@ def _shrink(raw: float, minutes: float, prior: float, k: float) -> float:
     return w * raw + (1.0 - w) * prior
 
 
-def _attacking_p90(p: dict, pos: str, params: Params) -> tuple[float, list[str]]:
+def _attacking_p90(p: dict, pos: str, params: Params,
+                   prior: dict | None) -> tuple[float, list[str]]:
     notes: list[str] = []
     minutes = _f(p, "minutes")
     xg90 = _f(p, "expected_goals_per_90")
@@ -197,9 +200,11 @@ def _attacking_p90(p: dict, pos: str, params: Params) -> tuple[float, list[str]]
         xa90 = 0.85 * xa90 + 0.15 * a90
 
     raw = xg90 * GOAL_PTS[pos] + xa90 * ASSIST_PTS
-    pts = _shrink(raw, minutes, ATT_PRIOR_P90[pos], params.shrink_minutes)
+    target = prior["att_p90"] if prior else ATT_PRIOR_P90[pos]
+    pts = _shrink(raw, minutes, target, params.shrink_minutes)
     if minutes < params.shrink_minutes:
-        notes.append(f"{int(minutes)} min sample — shrunk toward {pos} prior")
+        notes.append(f"{int(minutes)} min — shrunk toward "
+                     + ("own last-season rate" if prior else f"{pos} prior"))
 
     # Set-piece duty is a role, not a sample — add it after shrinkage.
     if str(p.get("penalties_order") or "") == "1":
@@ -212,7 +217,8 @@ def _attacking_p90(p: dict, pos: str, params: Params) -> tuple[float, list[str]]
     return pts, notes
 
 
-def _defensive_p90(p: dict, pos: str, opp_attack: float, params: Params) -> float:
+def _defensive_p90(p: dict, pos: str, opp_attack: float, params: Params,
+                   prior: dict | None) -> float:
     minutes = _f(p, "minutes")
     if pos == "FWD":
         cs_component = 0.0
@@ -230,28 +236,30 @@ def _defensive_p90(p: dict, pos: str, opp_attack: float, params: Params) -> floa
             + _f(p, "tackles_per_90")
             + _f(p, "recoveries_per_90")
         )
-    defcon90 = _shrink(min(defcon90, 60.0), minutes, DEFCON_PRIOR_P90[pos], params.shrink_minutes)
+    dc_target = prior["defcon_p90"] if prior else DEFCON_PRIOR_P90[pos]
+    defcon90 = _shrink(min(defcon90, 60.0), minutes, dc_target, params.shrink_minutes)
     thr = DEFCON_THRESHOLD.get(pos, 999)
     defcon_prob = max(0.0, min(0.9, (defcon90 / thr) ** 1.3)) if thr < 999 else 0.0
     defcon_component = defcon_prob * DEFCON_PTS
 
     saves_component = 0.0
     if pos == "GKP":
-        saves90 = _shrink(_f(p, "saves_per_90"), minutes, 3.0, params.shrink_minutes)
+        sv_target = prior["saves_p90"] if prior else 3.0
+        saves90 = _shrink(_f(p, "saves_per_90"), minutes, sv_target, params.shrink_minutes)
         saves_component = saves90 / 3.0  # 1 pt per 3 saves
 
     return cs_component + defcon_component + saves_component
 
 
-def _bonus_p90(p: dict, params: Params) -> float:
-    """Rough bonus-points estimate from season ICT rate."""
+def _bonus_p90(p: dict, params: Params, prior: dict | None) -> float:
+    """Bonus-points rate — this season's, shrunk toward last season's."""
     mins = _f(p, "minutes")
+    prior_bonus = prior["bonus_p90"] if prior else 0.15
     if mins < 90:
-        ppg = _f(p, "points_per_game")
-        return max(0.0, (ppg - 2.0) * 0.12) * params.bonus_scale
-    bonus_rate = _f(p, "bonus") * 90.0 / mins
-    ict90 = _f(p, "ict_index") * 90.0 / mins
-    return (0.6 * bonus_rate + 0.02 * ict90) * params.bonus_scale
+        raw = max(0.0, (_f(p, "points_per_game") - 2.0) * 0.12)
+    else:
+        raw = 0.6 * (_f(p, "bonus") * 90.0 / mins) + 0.02 * (_f(p, "ict_index") * 90.0 / mins)
+    return _shrink(raw, mins, prior_bonus, params.shrink_minutes) * params.bonus_scale
 
 
 def _discipline_p90(p: dict) -> float:
@@ -283,10 +291,11 @@ def project(cfg: dict | None = None, *, horizon_events: list[int] | None = None)
         if p.get("removed"):
             continue
         pos = fpl_api.POS_BY_TYPE[p["element_type"]]
-        start_prob, min_notes = _start_probability(p, finished, params)
+        prior = priors.prior_for(p.get("code"))
+        start_prob, min_notes = _start_probability(p, finished, params, prior)
 
-        att90, att_notes = _attacking_p90(p, pos, params)
-        bonus90 = _bonus_p90(p, params)
+        att90, att_notes = _attacking_p90(p, pos, params, prior)
+        bonus90 = _bonus_p90(p, params, prior)
         disc90 = _discipline_p90(p)
 
         per_gw: list[float] = []
@@ -302,7 +311,7 @@ def project(cfg: dict | None = None, *, horizon_events: list[int] | None = None)
                 ) ** params.fixture_swing
                 att_mult *= params.home_advantage if fx["home"] else 1.0 / params.home_advantage
                 opp_attack = _strength(opp, "attack", not fx["home"])
-                def90 = _defensive_p90(p, pos, opp_attack, params)
+                def90 = _defensive_p90(p, pos, opp_attack, params, prior)
 
                 minutes_factor = start_prob * 0.9 + 0.1 * (start_prob ** 0.5)
                 appearance = start_prob * 1.0 + start_prob * 0.82  # ~P(60+) ≈ 0.82·P(start)

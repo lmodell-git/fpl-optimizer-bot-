@@ -1,0 +1,38 @@
+name: refresh-priors-and-backtest
+
+# Monthly: rebuild data/priors.json from last season's per-player output and
+# re-score the model against every finished gameweek so far. Both are committed.
+# Also runnable on demand.
+
+on:
+  schedule:
+    - cron: "20 6 1 * *"      # 06:20 UTC on the 1st of each month
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+
+      - name: Rebuild priors
+        run: python scripts/refresh_priors.py
+
+      - name: Backtest
+        run: python scripts/backtest.py --write
+
+      - name: Commit
+        run: |
+          git config user.name "fpl-optimizer-bot"
+          git config user.email "actions@github.com"
+          git add data/priors.json data/backtest_latest.md
+          git commit -m "refresh priors + backtest $(date -u +%F)" || exit 0
+          git push
