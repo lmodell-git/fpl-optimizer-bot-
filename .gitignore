@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.DS_Store
+.env
+.venv/
+venv/
+*.log
+# scratch data dumps
+scratch/
+*.local.json

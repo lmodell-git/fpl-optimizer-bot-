@@ -1,0 +1,8 @@
+# Core
+PuLP>=3.0            # MIP modelling + bundled CBC solver (no system install needed)
+PyYAML>=6.0          # config.yaml
+
+# Claude sanity-check pass (optional at runtime — pipeline degrades gracefully)
+anthropic>=0.40
+
+# stdlib only: urllib (FPL API), smtplib (emailer.py)

@@ -1,0 +1,107 @@
+name: fpl-optimizer-bot
+
+# GitHub's own cron can slip 10–30 min, and a fixed weekly Friday trigger would
+# silently miss the ~1-in-6 gameweeks whose deadline isn't a Friday. So we fire
+# every 15 minutes, but a dependency-free GATE step decides whether the run does
+# any real work:
+#   * always cheap: fetch the events endpoint, compute hours to the next deadline
+#   * run the full pipeline only when inside the notify window (or a manual run,
+#     or the 07:00 UTC daily heartbeat)
+# Inside the last 3h before a deadline every 15-min tick runs, so a slipped cron
+# still lands a recommendation in time.
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+    inputs:
+      force_notify:
+        description: "Ignore the deadline window and send now"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write        # keepalive + state.json commit
+
+concurrency:
+  group: fpl-bot
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      run_full: ${{ steps.check.outputs.run_full }}
+      reason: ${{ steps.check.outputs.reason }}
+    steps:
+      - id: check
+        shell: python
+        run: |
+          import json, os, urllib.request, datetime as dt
+
+          event_name = os.environ.get("GITHUB_EVENT_NAME", "")
+          if event_name == "workflow_dispatch":
+              print("::notice::manual dispatch — running full pipeline")
+              with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+                  f.write("run_full=true\nreason=manual dispatch\n")
+              raise SystemExit(0)
+
+          req = urllib.request.Request(
+              "https://fantasy.premierleague.com/api/bootstrap-static/",
+              headers={"User-Agent": "Mozilla/5.0"},
+          )
+          data = json.load(urllib.request.urlopen(req, timeout=20))
+          now = dt.datetime.now(dt.timezone.utc)
+          nxt = None
+          for ev in data["events"]:
+              d = dt.datetime.fromisoformat(ev["deadline_time"].replace("Z", "+00:00"))
+              if d > now:
+                  nxt = (ev["name"], d)
+                  break
+
+          run_full, reason = False, "outside window"
+          if nxt:
+              hrs = (nxt[1] - now).total_seconds() / 3600
+              if hrs <= 26:
+                  run_full, reason = True, f"{hrs:.1f}h to {nxt[0]} deadline"
+              elif now.hour == 7 and now.minute < 15:
+                  run_full, reason = True, "daily heartbeat"
+              else:
+                  reason = f"{hrs:.1f}h to {nxt[0]} deadline — skip"
+          else:
+              reason = "season over"
+
+          print(f"::notice::{reason} (run_full={run_full})")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"run_full={str(run_full).lower()}\nreason={reason}\n")
+
+  run:
+    needs: gate
+    if: needs.gate.outputs.run_full == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Run pipeline
+        env:
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          FORCE_NOTIFY: ${{ github.event_name == 'workflow_dispatch' && inputs.force_notify && '1' || '' }}
+        run: python run.py
+
+      - name: Commit state
+        if: always()
+        run: |
+          date -u > last_run.txt
+          git config user.name "fpl-optimizer-bot"
+          git config user.email "actions@github.com"
+          git add state.json last_run.txt
+          git commit -m "run $(date -u +'%F %H:%M')" || exit 0
+          git push

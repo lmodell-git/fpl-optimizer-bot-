@@ -1,0 +1,39 @@
+# FPL Optimizer Bot — strategic + tuning parameters.
+# Everything the pipeline reads at runtime. Safe to edit and commit.
+
+notify:
+  window_hours: 26      # send the recommendation once inside this many hours of the deadline
+  tighten_hours: 3      # inside this window, workflow re-runs every 15 min (slipped-cron guard)
+
+predict:
+  horizon: 5            # gameweeks the projection + optimiser look ahead
+  decay: 0.84           # weight of GW n+k relative to n is decay**k
+  api_anchor_weight: 0.35   # blend the next-GW xP toward FPL's own ep_next
+  bench_weight: 0.15    # how much bench xP counts toward the objective
+  penalty_bonus_p90: 0.9    # extra xP/90 for the nailed penalty taker
+  corner_bonus_p90: 0.15
+  bonus_scale: 0.9
+  home_advantage: 1.08
+  fixture_swing: 0.45   # how hard team vs opponent strength bends expected returns
+  doubt_penalty: 0.5    # xP multiplier for a 'doubtful' flag with no % published
+
+optimizer:
+  budget: 1000          # tenths of £m for a fresh squad (1000 = £100.0m)
+
+transfers:
+  decay: 0.84
+  bench_weight: 0.15
+  time_limit: 90        # CBC seconds per horizon solve
+  churn_penalty: 0.30   # min xP a free transfer must gain before the solver makes it
+  chip_scan_gws: 3      # try each chip in each of the next N GWs when ranking chip timing
+  pool_gkp: 8           # player-universe caps per position (plus everyone you own)
+  pool_def: 32
+  pool_mid: 36
+  pool_fwd: 22
+
+claude:
+  web_search: true      # let the review pass pull very recent fitness/team news
+
+strategy:
+  # profile_for_rank() curves live in fplbot/strategy.py — edit there to re-tune
+  # how differential appetite and captain variance scale with overall rank.
