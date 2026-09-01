@@ -6,6 +6,9 @@ mixed-integer program for transfers + captain + chip timing, has Claude
 sanity-check the plan against fresh news, and — inside the pre-deadline window —
 emails the recommendation to `louismodell1001@gmail.com`.
 
+**New here?** → [SETUP.md](SETUP.md): connect the repo to GitHub, and the
+auto-execution plan (what it needs, what to provide).
+
 **Recommend-only.** It does not touch your team. Auto-execution is specced but
 deliberately not built yet (see [SPEC.md](SPEC.md) §"Deferred: auto-execution").
 
@@ -92,6 +95,14 @@ python run.py                               # real run (respects the deadline wi
 
 Tests: `python tests/test_optimizer.py && python tests/test_deadlines.py`
 (or `pytest tests/` if you have it).
+
+Build a starting squad on demand:
+
+```bash
+python scripts/build_squad.py --template     # low-variance, template-owned
+python scripts/build_squad.py                 # pure xP-optimal
+python scripts/build_squad.py --template --lock 411 --exclude 279
+```
 
 ---
 
