@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from . import fpl_api
+from . import fpl_api, pricing
 from .captain import CaptainPick
 from .deadlines import Deadline
 from .predict import PlayerXP
@@ -107,7 +107,26 @@ def build_context(
         ],
         "news_on_recommended_players": news,
         "injury_watch_list": watch[:25],
+        "price_moves": _price_context(plan),
     }
+
+
+def _price_context(plan: TransferPlan) -> dict:
+    pl = fpl_api.players_by_id()
+    nxt = plan.next_gw
+    if nxt is None:
+        return {}
+    targets = {}
+    for e in nxt.transfers_in:
+        s = pricing.price_signal(pl.get(e, {}))
+        if s:
+            targets[_name(e)] = s["note"]
+    squad = {}
+    for e in nxt.starting_xi + nxt.bench_order:
+        s = pricing.price_signal(pl.get(e, {}))
+        if s and s["direction"] == "fall":
+            squad[_name(e)] = s["note"]
+    return {"transfer_targets": targets, "squad_price_falls": squad}
 
 
 # --------------------------------------------------------------------------- #
@@ -119,9 +138,6 @@ def _gw_block(g: GWPlan, xp_idx) -> str:
     if g.chip:
         lines.append(f"  CHIP: {g.chip.upper()}")
     if g.transfers_in or g.transfers_out:
-        for o, i in zip(g.transfers_out + [None] * len(g.transfers_in),
-                        [None] * len(g.transfers_out) + g.transfers_in):
-            pass
         outs = ", ".join(_fmt_player(e, xp_idx) for e in g.transfers_out) or "—"
         ins = ", ".join(_fmt_player(e, xp_idx) for e in g.transfers_in) or "—"
         tag = f"  ({g.hits} hit{'s' if g.hits != 1 else ''}, -{g.hits * 4} pts)" if g.hits else ""
@@ -131,6 +147,65 @@ def _gw_block(g: GWPlan, xp_idx) -> str:
         lines.append(f"  No transfer (roll — {g.free_transfers_before} FT banked)")
     lines.append(f"  C: {_name(g.captain)}   VC: {_name(g.vice_captain)}")
     return "\n".join(lines)
+
+
+def _action_line(plan: TransferPlan, deadline: Deadline) -> str:
+    """One-line 'what do I do before this deadline' headline."""
+    nxt = plan.next_gw
+    if plan.infeasible or nxt is None:
+        return "ACTION: no plan produced — see notes below"
+    pl = fpl_api.players_by_id()
+
+    if nxt.chip:
+        base = f"play {nxt.chip.upper()}"
+        if nxt.transfers_in:
+            n = len(nxt.transfers_in)
+            base += f" + {n} transfer{'s' if n != 1 else ''}"
+    elif nxt.transfers_in:
+        n = len(nxt.transfers_in)
+        base = f"make {n} transfer{'s' if n != 1 else ''} now"
+        base += (f" — takes a {nxt.hits}×−4 hit (−{nxt.hits * 4} pts)"
+                 if nxt.hits else " (free)")
+    else:
+        follow = next((g for g in plan.per_gw[1:] if g.transfers_in), None)
+        if follow:
+            names = ", ".join(_name(e) for e in follow.transfers_in)
+            base = (f"roll this week — {nxt.free_transfers_before} FT banked; "
+                    f"next move planned for GW{follow.event} ({names})")
+        else:
+            base = (f"roll — nothing rated worth doing in the next "
+                    f"{len(plan.per_gw)} GWs")
+
+    urgent = [f"buy {_name(e)} before its price rise"
+              for e in nxt.transfers_in if pricing.urgent_buy(pl.get(e, {}))]
+    urgent += [f"move {_name(e)} out before its price drop"
+               for e in nxt.transfers_out if pricing.urgent_sell(pl.get(e, {}))]
+    tail = f"  ⏰ {'; '.join(urgent)}" if urgent else ""
+    return f"ACTION: {base}.{tail}"
+
+
+def _price_section(plan: TransferPlan, squad_ids: list[int]) -> list[str]:
+    pl = fpl_api.players_by_id()
+    nxt = plan.next_gw
+    targets = set(nxt.transfers_in) if nxt else set()
+
+    rising = []
+    for e in targets:
+        s = pricing.price_signal(pl.get(e, {}))
+        if s and s["direction"] == "rise":
+            rising.append(f"  ↑ target  {_name(e)} — {s['note']}")
+    falling = []
+    for e in squad_ids:
+        if e in targets:
+            continue
+        s = pricing.price_signal(pl.get(e, {}))
+        if s and s["direction"] == "fall":
+            falling.append(f"  ↓ squad   {_name(e)} — {s['note']}")
+
+    if not (rising or falling):
+        return []
+    return ["PRICE MOVES", "-" * 40, *rising, *falling,
+            "  (buys use current price; a rise before you act costs you the 0.1m)", ""]
 
 
 def build_email(
@@ -154,21 +229,31 @@ def build_email(
         return subject, body
 
     nxt = plan.next_gw
-    if nxt and (nxt.transfers_in or nxt.hits):
+    if nxt and nxt.transfers_in:
         head = f"{len(nxt.transfers_in)} transfer" + ("s" if len(nxt.transfers_in) != 1 else "")
         if nxt.hits:
             head += f" ({nxt.hits}×-4)"
     else:
-        head = "roll transfer"
+        head = "ROLL"
+    pl = fpl_api.players_by_id()
+    urgent = nxt and (any(pricing.urgent_buy(pl.get(e, {})) for e in nxt.transfers_in)
+                      or any(pricing.urgent_sell(pl.get(e, {})) for e in nxt.transfers_out))
     cap_tag = f"C {captain.name}" + ("" if captain.is_template else " [diff]")
     chip_tag = f" · {nxt.chip.upper()}" if nxt and nxt.chip else ""
-    subject = f"FPL GW{gw} — {head} · {cap_tag}{chip_tag} (deadline {hrs:.0f}h)"
+    price_tag = " · ⏰ price" if urgent else ""
+    subject = f"FPL GW{gw} — {head} · {cap_tag}{chip_tag}{price_tag} (deadline {hrs:.0f}h)"
 
     lines: list[str] = []
     lines.append(f"FPL OPTIMIZER — GW{gw} recommendation")
     lines.append(f"Deadline: {deadline.deadline:%a %d %b %H:%M UTC}  ({hrs:.1f}h away)")
     lines.append(f"Rank profile: {profile.label}")
     lines.append("")
+    lines.append(_action_line(plan, deadline))
+    lines.append("")
+
+    squad_ids = (plan.next_gw.starting_xi + plan.next_gw.bench_order
+                 if plan.next_gw else [])
+    lines += _price_section(plan, squad_ids)
 
     if review is not None and review.ok and review.verdict != "unavailable":
         lines.append(f"CLAUDE REVIEW — verdict: {review.verdict.upper()}")

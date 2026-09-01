@@ -124,8 +124,10 @@ that survives between stateless Action runs.
 }
 ```
 
-When `entry_id` is set the live API is the source of truth each run; `state.json`
-just mirrors it plus the run log.
+When `entry_id` is set the live API is the source of truth each run (squad, bank,
+free transfers, chips, overall rank) and `state.json` just mirrors it plus the
+run log. **No login needed** — `/api/entry/{id}/…` is public; the squad is read
+from the last started gameweek (which is your team until you transfer).
 
 ---
 

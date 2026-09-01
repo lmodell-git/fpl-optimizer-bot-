@@ -97,22 +97,31 @@ class TeamState:
         """Total spend ceiling for a fresh optimisation: squad sell value + bank."""
         return self.squad_value() + self.bank
 
-    def sync_from_api(self, event: int | None = None) -> bool:
-        """Overwrite squad / bank / FT / rank / chips from the live API.
+    def sync_from_api(self, upcoming_event: int | None = None) -> bool:
+        """Overwrite squad / bank / FT / rank / chips from the PUBLIC FPL API.
 
-        Returns False (and changes nothing) if there's no entry_id yet.
+        No login required — `/api/entry/{id}/...` is public. Picks for the
+        not-yet-started gameweek are private, so the squad is read from the most
+        recent started gameweek (that's your team until you transfer anyway).
+
+        Returns False (unchanged) if there's no entry_id.
         """
         if self.entry_id is None:
             return False
-        ev = event or (fpl_api.current_event() or fpl_api.next_event())["id"]
-        picks = fpl_api.entry_picks(self.entry_id, ev)
+        cur = fpl_api.current_event()
+        pick_ev = (
+            cur["id"] if cur
+            else max((e["id"] for e in fpl_api.events() if e["finished"]), default=1)
+        )
+        upcoming_event = upcoming_event or fpl_api.next_event()["id"]
+
+        picks = fpl_api.entry_picks(self.entry_id, pick_ev)
         hist = fpl_api.entry_history(self.entry_id)
         ent = fpl_api.entry(self.entry_id)
 
         self.squad = [Pick.from_api(p) for p in picks["picks"]]
-        et = picks.get("entry_history", {})
-        self.bank = et.get("bank", self.bank)
-        self.free_transfers = _infer_free_transfers(hist, ev)
+        self.bank = picks.get("entry_history", {}).get("bank", self.bank)
+        self.free_transfers = _infer_free_transfers(hist, upcoming_event)
         self.chips_used = [
             {"chip": c["name"], "event": c["event"]} for c in hist.get("chips", [])
         ]

@@ -119,7 +119,7 @@ def main() -> int:
     print(f"[notify] stage: {stage}")
 
     # step 1b — live squad
-    synced = state.sync_from_api(event=ns.deadline.event_id) if state.entry_id else False
+    synced = state.sync_from_api(upcoming_event=ns.deadline.event_id) if state.entry_id else False
     mode = "transfer" if state.has_team else "initial"
     print(f"[mode] {mode}  (entry_id={state.entry_id}, synced={synced})")
 
