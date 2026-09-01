@@ -4,7 +4,16 @@
   "bank": 1000,
   "free_transfers": 1,
   "chips_used": [],
-  "last_event_processed": null,
+  "last_event_processed": 3,
   "overall_rank": null,
-  "history": []
+  "history": [
+    {
+      "ts": "2026-09-01T20:40:58+00:00",
+      "event": 3,
+      "mode": "initial",
+      "captain": "B.Fernandes",
+      "hits": 0,
+      "claude_verdict": "unavailable"
+    }
+  ]
 }
