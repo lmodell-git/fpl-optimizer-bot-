@@ -51,6 +51,8 @@ class TeamState:
     last_event_processed: int | None = None
     overall_rank: int | None = None
     history: list[dict] = field(default_factory=list)      # run log, newest last
+    notified_event: int | None = None    # GW we've already emailed the "day-before" note for
+    notified_final: bool = False          # ...and the "final hours" note for that same GW
 
     # ---- persistence ----------------------------------------------------- #
 

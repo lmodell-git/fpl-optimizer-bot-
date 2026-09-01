@@ -92,12 +92,31 @@ def main() -> int:
         print("[done] season over")
         return 0
 
-    act = ns.should_notify or force
-    if not act:
-        print("[done] outside notification window — nothing to send")
+    # At most two scheduled emails per gameweek: one when we first enter the
+    # 26h window ("opening"), one when we first enter the final-hours window
+    # ("final", which catches late team news via the Claude pass). A manual
+    # dispatch (FORCE_NOTIFY) always sends and doesn't touch the tracking.
+    ev = ns.deadline.event_id
+    in_final = ns.hours_away is not None and ns.hours_away <= nc.get("tighten_hours", 3.0)
+    if force:
+        stage = "manual"
+    elif ns.should_notify and state.notified_event != ev:
+        stage = "opening"
+    elif ns.should_notify and in_final and not state.notified_final:
+        stage = "final"
+    else:
+        stage = None
+
+    if stage is None:
+        if ns.should_notify:
+            print(f"[done] already emailed GW{ev} (opening"
+                  f"{'+final' if state.notified_final else ''}) — nothing to send")
+        else:
+            print("[done] outside notification window — nothing to send")
         if not dry:
             state.save(state_path)
         return 0
+    print(f"[notify] stage: {stage}")
 
     # step 1b — live squad
     synced = state.sync_from_api(event=ns.deadline.event_id) if state.entry_id else False
@@ -175,9 +194,13 @@ def main() -> int:
     print("\n[email sent]")
 
     # step 7 — persist
-    state.last_event_processed = ns.deadline.event_id
+    state.last_event_processed = ev
+    if stage == "opening":
+        state.notified_event, state.notified_final = ev, False
+    elif stage == "final":
+        state.notified_event, state.notified_final = ev, True
     state.log_run({
-        "event": ns.deadline.event_id, "mode": mode,
+        "event": ev, "mode": mode, "stage": stage,
         "captain": captain.name, "hits": plan.next_gw.hits if plan.next_gw else 0,
         "claude_verdict": review.verdict if review else "skipped",
     })
