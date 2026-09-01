@@ -16,7 +16,6 @@ Element IDs for --lock / --exclude are printed next to every player.
 from __future__ import annotations
 
 import argparse
-import copy
 import sys
 from collections import Counter
 from pathlib import Path
@@ -27,6 +26,7 @@ from fplbot import fpl_api  # noqa: E402
 from fplbot.deadlines import next_deadline, upcoming_deadlines  # noqa: E402
 from fplbot.optimizer import build_initial_squad  # noqa: E402
 from fplbot.predict import index_by_element, project  # noqa: E402
+from fplbot.strategy import templatise  # noqa: E402
 
 ORDER = {"GKP": 0, "DEF": 1, "MID": 2, "FWD": 3}
 
@@ -36,20 +36,6 @@ def _own(pl, e: int) -> float:
         return float(pl[e]["selected_by_percent"] or 0.0)
     except (TypeError, ValueError):
         return 0.0
-
-
-def _templatise(projections, pl, min_start_prob: float):
-    """Return a copy of `projections` with .weighted replaced by a template score."""
-    mx = max(p.weighted for p in projections) or 1.0
-    out = []
-    for p in projections:
-        q = copy.copy(p)
-        if p.start_prob < min_start_prob:
-            q.weighted = -1.0
-        else:
-            q.weighted = _own(pl, p.element) + 0.35 * (p.weighted / mx * 100.0)
-        out.append(q)
-    return out
 
 
 def main() -> int:
@@ -69,7 +55,8 @@ def main() -> int:
     projections = project({}, horizon_events=horizon)
     xp0 = index_by_element(projections)
 
-    universe = _templatise(projections, pl, args.min_start_prob) if args.template else projections
+    universe = (templatise(projections, min_start_prob=args.min_start_prob)
+                if args.template else projections)
     sol = build_initial_squad(universe, budget=args.budget,
                               locked_in=args.lock, excluded=args.exclude)
     if sol.infeasible:

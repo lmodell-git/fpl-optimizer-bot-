@@ -15,6 +15,7 @@ simple and live here so they're easy to re-tune.
 
 from __future__ import annotations
 
+import copy
 from dataclasses import dataclass
 
 TOTAL_PLAYERS = 11_000_000
@@ -35,6 +36,32 @@ class RiskProfile:
             "differential_bonus": 0.10 + 0.45 * self.differential_appetite,
             "template_penalty": 0.05 * (1.0 - self.differential_appetite),
         }
+
+
+def templatise(projections, *, min_start_prob: float = 0.6, xp_weight: float = 0.35):
+    """Re-score projections so the optimiser builds a low-variance, template-owned
+    squad: effective ownership dominates, xP is only a tiebreak, and anyone below
+    `min_start_prob` is dropped. Returns copies — the originals keep their real xP.
+    """
+    from . import fpl_api
+
+    pl = fpl_api.players_by_id()
+
+    def own(el: int) -> float:
+        try:
+            return float(pl.get(el, {}).get("selected_by_percent") or 0.0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    mx = max((p.weighted for p in projections), default=1.0) or 1.0
+    out = []
+    for p in projections:
+        q = copy.copy(p)
+        q.weighted = -1.0 if p.start_prob < min_start_prob else (
+            own(p.element) + xp_weight * (p.weighted / mx * 100.0)
+        )
+        out.append(q)
+    return out
 
 
 def _percentile(rank: int | None) -> float:

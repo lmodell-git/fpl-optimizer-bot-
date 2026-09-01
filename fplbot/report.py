@@ -231,11 +231,15 @@ def build_email(
 
 
 def _initial_body(deadline, profile, sol, captain, chip_options, xp_idx, review) -> str:
+    # sol.expected_points is in the optimiser's own objective units (which are
+    # ownership-weighted in template mode) — recompute a real next-GW figure.
+    real_next = sum(xp_idx[e].next_gw for e in sol.starting_xi if e in xp_idx)
+    real_next += xp_idx.get(sol.captain).next_gw if sol.captain in xp_idx else 0.0
     lines = [
         f"FPL OPTIMIZER — initial squad for GW{deadline.event_id}",
         f"Deadline: {deadline.deadline:%a %d %b %H:%M UTC}",
         f"Spend: £{sol.spend / 10:.1f}m / £100.0m   Formation: {sol.formation}",
-        f"Projected XI points (weighted horizon): {sol.expected_points}",
+        f"Projected XI points next GW (incl. captain): {real_next:.1f}",
         "",
     ]
     if review is not None and review.ok and review.summary:

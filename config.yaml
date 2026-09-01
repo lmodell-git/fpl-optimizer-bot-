@@ -19,6 +19,8 @@ predict:
 
 optimizer:
   budget: 1000          # tenths of £m for a fresh squad (1000 = £100.0m)
+  initial_template: true   # build the first squad template-safe (ownership-weighted,
+                           # low variance) rather than pure xP-optimal
 
 transfers:
   decay: 0.84

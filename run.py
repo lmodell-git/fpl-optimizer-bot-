@@ -105,9 +105,15 @@ def main() -> int:
     initial_sol = None
     chip_opts: list = []
     if mode == "initial":
-        budget = cfg.get("optimizer", {}).get("budget", 1000)
+        opt_cfg = cfg.get("optimizer", {})
+        budget = opt_cfg.get("budget", 1000)
+        universe = projections
+        if opt_cfg.get("initial_template", True):
+            from fplbot.strategy import templatise
+            universe = templatise(projections)
+            print("[optimizer] template build (low-variance, ownership-weighted)")
         initial_sol = build_initial_squad(
-            projections, budget=budget,
+            universe, budget=budget,
             bench_weight=cfg.get("predict", {}).get("bench_weight", 0.15),
         )
         from fplbot.transfers import TransferPlan
