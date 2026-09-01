@@ -13,7 +13,7 @@ exists, state.json is authoritative and starts empty.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field, fields
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -51,7 +51,6 @@ class TeamState:
     last_event_processed: int | None = None
     overall_rank: int | None = None
     history: list[dict] = field(default_factory=list)      # run log, newest last
-    auto_execute: bool = False           # kept for the deferred write-path; do not flip on yet
 
     # ---- persistence ----------------------------------------------------- #
 
@@ -62,7 +61,8 @@ class TeamState:
             return TeamState()
         raw = json.loads(p.read_text())
         raw["squad"] = [Pick(**pk) for pk in raw.get("squad", [])]
-        return TeamState(**raw)
+        known = {f.name for f in fields(TeamState)}
+        return TeamState(**{k: v for k, v in raw.items() if k in known})
 
     def save(self, path: Path | str = DEFAULT_PATH) -> None:
         Path(path).write_text(json.dumps(self.to_dict(), indent=2) + "\n")

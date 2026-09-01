@@ -156,39 +156,12 @@ def main() -> int:
     _send(subject, body)
     print("\n[email sent]")
 
-    # step 6b — auto-execution (only when armed; otherwise a logged dry-run that
-    # never touches the FPL account at all unless creds are present)
-    exec_note = "not attempted"
-    ex_cfg = cfg.get("execute", {})
-    want_exec = mode == "transfer" and (state.auto_execute or ex_cfg.get("armed"))
-    if want_exec and not plan.infeasible:
-        from fplbot.execute import ExecuteError, run_execution
-        try:
-            res = run_execution(
-                state, plan, captain, cfg, review,
-                deadline_hours=ns.deadline.hours_away(),
-                force_dry=bool(os.environ.get("EXECUTE_DRY_RUN")),
-            )
-            exec_note = "SUBMITTED" if res.submitted else f"dry-run ({res.reason_forced_dry})"
-            print(f"[execute] {exec_note}")
-            if res.submitted:
-                _send(f"FPL GW{ns.deadline.event_id} — auto-executed",
-                      "\n".join(res.log))
-        except ExecuteError as exc:
-            state.auto_execute = False  # never fail blind in a loop
-            exec_note = f"FAILED: {exc}"
-            print(f"[execute] {exec_note} — auto_execute disabled")
-            _send("FPL auto-execute FAILED — auto_execute disabled",
-                  f"{exc}\n\nThe recommendation email was still sent. "
-                  f"Make this GW's moves manually and re-arm when fixed.")
-
     # step 7 — persist
     state.last_event_processed = ns.deadline.event_id
     state.log_run({
         "event": ns.deadline.event_id, "mode": mode,
         "captain": captain.name, "hits": plan.next_gw.hits if plan.next_gw else 0,
         "claude_verdict": review.verdict if review else "skipped",
-        "execute": exec_note,
     })
     state.save(state_path)
     return 0

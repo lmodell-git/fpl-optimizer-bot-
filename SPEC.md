@@ -137,22 +137,26 @@ bench order, the multi-GW horizon plan, ranked chip-timing options, and a
 league-wide flagged-player watch list. Subject line carries the headline
 (transfers / captain / chip / hours to deadline).
 
-## Deferred: auto-execution
+## Auto-execution (shelved)
 
-The build plan locks in "fully auto-execute", but this is **not built**. When it
-is, it goes in an isolated `fplbot/execute.py` and needs:
+The build plan wanted "fully auto-execute". It was built (`fplbot/execute.py`,
+guarded, dry-run-first) and then **removed** after the first login test: the
+Premier League has retired `users.premierleague.com` — the endpoint every
+community FPL tool logs in through. Auth now goes via `account.premierleague.com`,
+behind Cloudflare + AWS API Gateway (a bot challenge, not a form POST).
 
-* login to `users.premierleague.com/accounts/login/` with email + password
-  (a new `FPL_EMAIL` / `FPL_PASSWORD` secret), capture the session cookie, POST
-  to the undocumented `/api/transfers/` and `/api/my-team/{id}/` endpoints —
-  the same reverse-engineered flow the community `fpl` library uses;
-* a hard **manual-override switch** (`state.json.auto_execute`, default false)
-  and a **failure alert on every path** — never fail silently;
-* acceptance that the FPL password lives in a secret and FPL can change these
-  endpoints mid-season without notice.
+Consequences:
 
-Build the read + recommend pipeline's track record first, then add this behind
-the switch.
+* Fully scripted login is not feasible — it hits a Cloudflare "verify you're
+  human" wall.
+* The only remaining path is **session-cookie mode**: log in via a browser,
+  copy the session cookie into a secret, reuse it for reads + writes until it
+  expires (days–weeks), refresh manually. Rejected here as too manual/fragile.
+
+**This bot is recommend-only.** The weekly pipeline reads the public API and
+emails the plan; the manager makes the moves in the app. If cookie-mode is ever
+wanted, it's a self-contained `execute.py` again — see git history for the
+removed version (`fpl-optimizer-bot` commits around the initial scaffold).
 
 ## Config surface (`config.yaml`)
 

@@ -6,11 +6,12 @@ mixed-integer program for transfers + captain + chip timing, has Claude
 sanity-check the plan against fresh news, and — inside the pre-deadline window —
 emails the recommendation to `louismodell1001@gmail.com`.
 
-**New here?** → [SETUP.md](SETUP.md): connect the repo to GitHub, and the
-auto-execution plan (what it needs, what to provide).
+**New here?** → [SETUP.md](SETUP.md): connect the repo to GitHub.
 
-**Recommend-only.** It does not touch your team. Auto-execution is specced but
-deliberately not built yet (see [SPEC.md](SPEC.md) §"Deferred: auto-execution").
+**Recommend-only.** It emails a plan; you make the moves in the FPL app.
+Auto-execution was built and then shelved — the Premier League retired the
+scriptable login for a Cloudflare-walled account system
+(see [SPEC.md](SPEC.md) §"Auto-execution (shelved)").
 
 ---
 
@@ -119,8 +120,7 @@ that survives between stateless Action runs.
   "free_transfers": 1,
   "chips_used": [],           // [{"chip": "wildcard", "event": 8}, ...]
   "overall_rank": null,
-  "history": [],              // run log, last 50
-  "auto_execute": false       // reserved for the deferred write-path — leave false
+  "history": []               // run log, last 50
 }
 ```
 
@@ -144,4 +144,4 @@ just mirrors it plus the run log.
 * The multi-period solver runs against a pruned player universe (top-N per
   position by xP + everyone you own) to keep CBC solves in the low seconds.
 
-See [SPEC.md](SPEC.md) for the full design and the deferred auto-execution plan.
+See [SPEC.md](SPEC.md) for the full design.

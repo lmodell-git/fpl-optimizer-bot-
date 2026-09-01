@@ -1,12 +1,9 @@
 # Setup
 
-Two parts:
-
 1. [Connect the repo to GitHub](#1-connect-to-github) — get the weekly
-   recommendation email running. **Do this now.**
-2. [Enable auto-execution](#2-auto-execution-not-built-yet) — have the bot
-   actually make your transfers. **Not built yet**; this section is what it
-   needs and what you'd have to provide.
+   recommendation email running.
+2. [Auto-execution](#2-auto-execution--not-supported) — why the bot doesn't make
+   the transfers for you.
 
 ---
 
@@ -91,68 +88,23 @@ once).
 
 ---
 
-## 2. Auto-execution (built, disabled by default)
+## 2. Auto-execution — not supported
 
-`fplbot/execute.py` now exists: login flow, payload builders, guardrails. It is
-**off by every default** and cannot submit anything until you deliberately arm
-it. Build a track record on the recommendations first.
+The bot **recommends**; you make the moves in the FPL app. This was a deliberate
+call after testing, not an oversight.
 
-### Blockers before it can run at all
+It was built (`fplbot/execute.py`, guarded, dry-run-first) and then removed. The
+first login test failed because **`users.premierleague.com` no longer exists** —
+the Premier League retired it, and with it the form-POST login every community
+FPL tool (and the `fpl` Python library) relied on. Auth now runs through
+`account.premierleague.com`, behind **Cloudflare + AWS API Gateway** — a
+"verify you're human" challenge, not something a script gets through.
 
-1. **An FPL team must exist** and `state.json` → `entry_id` must be set. Until
-   then `scripts/try_execute.py` exits with *"create the FPL team first"*.
-2. **`FPL_EMAIL` / `FPL_PASSWORD` must be reachable.** As repo secrets they only
-   exist inside GitHub Actions — run the `fpl-execute-dryrun` workflow
-   (Actions tab) to test from there. Locally, `export` them first.
-3. **The scripted login must actually work.** If FPL emails a new-device code or
-   shows a CAPTCHA, `execute.py` raises with a clear message and stops.
+The only path left is **session-cookie mode**: log in with a browser, copy the
+session cookie into a GitHub secret, have the bot reuse it until it expires
+(days to weeks), refresh it by hand each time. Rejected here as too manual and
+too silent when it breaks.
 
-### Try it (dry-run — submits nothing)
-
-Actions tab → **fpl-execute-dryrun** → Run workflow (leave *live* unticked). It
-logs in, fetches your team, prints the exact transfer + lineup payloads it
-*would* submit, and POSTs nothing. Watch this for a few gameweeks.
-
-Locally:
-
-```bash
-export FPL_EMAIL='...' FPL_PASSWORD='...'
-python scripts/try_execute.py          # dry-run
-```
-
-### Arming a live submit — ALL of these
-
-| Where | Set |
-|---|---|
-| `state.json` | `"auto_execute": true` |
-| `config.yaml` `execute:` | `armed: true` |
-| `config.yaml` `execute:` | `dry_run: false` |
-| guardrails (auto) | Claude verdict in `require_verdict` (default `[endorse]`), hits ≤ `max_auto_hit` (default 0), not inside `freeze_minutes` of the deadline |
-
-Any failure → the recommendation email still goes out, an alert email is sent,
-and `auto_execute` flips itself back to `false`.
-
----
-
-### Background: why auto-execution is fragile
-
-FPL has **no official write API**. Reading (prices, fixtures, your picks) is
-open; making a transfer or setting a captain is not. `execute.py` scripts the
-same **undocumented, reverse-engineered** flow the community `fpl` library uses:
-
-1. `POST users.premierleague.com/accounts/login/` (`login`, `password`,
-   `app=plfpl-web`, `redirect_uri`) → `pl_profile` cookie + session.
-2. `GET /api/my-team/{entry_id}/` → current picks, bank, **selling prices**.
-3. `POST /api/transfers/` →
-   `{"entry", "event", "chips", "transfers":[{"element_in","element_out","purchase_price","selling_price"}]}`.
-4. `POST /api/my-team/{entry_id}/` → XI (positions 1–11), bench (12–15),
-   captain / vice.
-
-Risks to accept before arming it:
-
-- Your FPL password sits in a GitHub secret — encrypted, never printed in logs,
-  but it's there.
-- FPL can change these endpoints or add bot protection at any time and the bot
-  breaks mid-season. The failure alert + self-disable handle that; a broken run
-  that *looks* fine is why dry-run-first and verdict-gating matter.
-- A wrong auto-executed transfer can't be undone without a −4 (or a wildcard).
+If you ever want cookie-mode, the removed `execute.py` (login flow, FPL-legal
+transfer/lineup payload builders, guardrails) is in git history near the initial
+scaffold commits — it just needs the login swapped for a pasted cookie.
