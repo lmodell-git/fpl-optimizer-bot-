@@ -1,19 +1,88 @@
 {
-  "entry_id": null,
-  "squad": [],
-  "bank": 1000,
+  "entry_id": 10276374,
+  "squad": [
+    {
+      "element": 572,
+      "purchase_price": 45,
+      "selling_price": 45
+    },
+    {
+      "element": 385,
+      "purchase_price": 50,
+      "selling_price": 50
+    },
+    {
+      "element": 279,
+      "purchase_price": 41,
+      "selling_price": 41
+    },
+    {
+      "element": 8,
+      "purchase_price": 56,
+      "selling_price": 56
+    },
+    {
+      "element": 10,
+      "purchase_price": 55,
+      "selling_price": 55
+    },
+    {
+      "element": 229,
+      "purchase_price": 60,
+      "selling_price": 60
+    },
+    {
+      "element": 115,
+      "purchase_price": 47,
+      "selling_price": 47
+    },
+    {
+      "element": 426,
+      "purchase_price": 120,
+      "selling_price": 120
+    },
+    {
+      "element": 399,
+      "purchase_price": 77,
+      "selling_price": 77
+    },
+    {
+      "element": 12,
+      "purchase_price": 95,
+      "selling_price": 95
+    },
+    {
+      "element": 154,
+      "purchase_price": 96,
+      "selling_price": 96
+    },
+    {
+      "element": 165,
+      "purchase_price": 76,
+      "selling_price": 76
+    },
+    {
+      "element": 565,
+      "purchase_price": 56,
+      "selling_price": 56
+    },
+    {
+      "element": 464,
+      "purchase_price": 61,
+      "selling_price": 61
+    },
+    {
+      "element": 249,
+      "purchase_price": 55,
+      "selling_price": 55
+    }
+  ],
+  "bank": 10,
   "free_transfers": 1,
   "chips_used": [],
-  "last_event_processed": 3,
+  "last_event_processed": null,
   "overall_rank": null,
-  "history": [
-    {
-      "ts": "2026-09-01T20:40:58+00:00",
-      "event": 3,
-      "mode": "initial",
-      "captain": "B.Fernandes",
-      "hits": 0,
-      "claude_verdict": "unavailable"
-    }
-  ]
+  "history": [],
+  "notified_event": null,
+  "notified_final": false
 }

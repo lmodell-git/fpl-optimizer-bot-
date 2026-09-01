@@ -34,8 +34,12 @@ _RETRIES = 3
 _BACKOFF = 2.0
 
 
+class NotFound(RuntimeError):
+    """The resource doesn't exist (HTTP 404) — e.g. picks for a GW not yet public."""
+
+
 def _get(path: str) -> Any:
-    """GET {BASE}{path} as JSON, with a few retries on transient failures."""
+    """GET {BASE}{path} as JSON. Retries transient failures; 404 raises NotFound."""
     url = f"{BASE}{path}"
     last_err: Exception | None = None
     for attempt in range(_RETRIES):
@@ -43,10 +47,14 @@ def _get(path: str) -> Any:
             req = urllib.request.Request(url, headers=_HEADERS)
             with urllib.request.urlopen(req, timeout=_TIMEOUT) as resp:
                 return json.loads(resp.read().decode("utf-8"))
-        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as exc:
+        except urllib.error.HTTPError as exc:
+            if exc.code == 404:
+                raise NotFound(f"404: {url}") from exc
             last_err = exc
-            if attempt < _RETRIES - 1:
-                time.sleep(_BACKOFF * (attempt + 1))
+        except (urllib.error.URLError, TimeoutError) as exc:
+            last_err = exc
+        if attempt < _RETRIES - 1:
+            time.sleep(_BACKOFF * (attempt + 1))
     raise RuntimeError(f"FPL API GET failed after {_RETRIES} tries: {url} ({last_err})")
 
 

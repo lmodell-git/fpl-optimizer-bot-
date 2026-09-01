@@ -108,25 +108,36 @@ class TeamState:
         """
         if self.entry_id is None:
             return False
-        cur = fpl_api.current_event()
-        pick_ev = (
-            cur["id"] if cur
-            else max((e["id"] for e in fpl_api.events() if e["finished"]), default=1)
-        )
+        ent = fpl_api.entry(self.entry_id)
+        hist = fpl_api.entry_history(self.entry_id)
         upcoming_event = upcoming_event or fpl_api.next_event()["id"]
 
-        picks = fpl_api.entry_picks(self.entry_id, pick_ev)
-        hist = fpl_api.entry_history(self.entry_id)
-        ent = fpl_api.entry(self.entry_id)
-
-        self.squad = [Pick.from_api(p) for p in picks["picks"]]
-        self.bank = picks.get("entry_history", {}).get("bank", self.bank)
-        self.free_transfers = _infer_free_transfers(hist, upcoming_event)
+        # rank / chips are always available
+        self.overall_rank = ent.get("summary_overall_rank")
         self.chips_used = [
             {"chip": c["name"], "event": c["event"]} for c in hist.get("chips", [])
         ]
-        self.overall_rank = ent.get("summary_overall_rank")
-        return True
+        self.free_transfers = _infer_free_transfers(hist, upcoming_event)
+
+        # Picks are public only for gameweeks that have started AND that this
+        # entry actually played. A brand-new team (started_event == upcoming) has
+        # none public yet — keep whatever squad state.json already holds.
+        started = ent.get("started_event") or 1
+        played = sorted(r["event"] for r in hist.get("current", []))
+        candidates = [e for e in played if e < upcoming_event] or (
+            [started] if started < upcoming_event else []
+        )
+        for pev in reversed(candidates):
+            try:
+                picks = fpl_api.entry_picks(self.entry_id, pev)
+            except fpl_api.NotFound:
+                continue
+            self.squad = [Pick.from_api(p) for p in picks["picks"]]
+            self.bank = picks.get("entry_history", {}).get("bank", self.bank)
+            return True
+
+        # No public squad yet — fine if state.json was pre-filled by hand.
+        return len(self.squad) == 15
 
     def log_run(self, entry: dict) -> None:
         entry = {"ts": datetime.now(timezone.utc).isoformat(timespec="seconds"), **entry}
