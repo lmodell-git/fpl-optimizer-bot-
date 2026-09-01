@@ -134,6 +134,10 @@ class FplSession:
 
     # ---- reads -------------------------------------------------------------- #
 
+    def me(self) -> dict:
+        """Authenticated account summary. `player.entry` is the numeric team id."""
+        return self._api_get("/me/")
+
     def my_team(self, entry_id: int) -> dict:
         return self._api_get(f"/my-team/{entry_id}/")
 

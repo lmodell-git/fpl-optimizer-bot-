@@ -8,10 +8,11 @@ name: fpl-execute-dryrun
 on:
   workflow_dispatch:
     inputs:
-      live:
-        description: "Allow a real POST if all guardrails pass (default: dry-run only)"
-        type: boolean
-        default: false
+      mode:
+        description: "whoami = just print the entry_id; dryrun = build payloads, POST nothing; live = real POST if guardrails pass"
+        type: choice
+        options: [whoami, dryrun, live]
+        default: whoami
 
 jobs:
   try:
@@ -23,9 +24,13 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt
-      - name: Attempt execution
+      - name: Run
         env:
           FPL_EMAIL: ${{ secrets.FPL_EMAIL }}
           FPL_PASSWORD: ${{ secrets.FPL_PASSWORD }}
         run: |
-          python scripts/try_execute.py ${{ inputs.live && '--live' || '' }}
+          case "${{ inputs.mode }}" in
+            whoami) python scripts/whoami.py ;;
+            dryrun) python scripts/try_execute.py ;;
+            live)   python scripts/try_execute.py --live ;;
+          esac
