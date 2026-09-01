@@ -46,16 +46,21 @@ def _app_password():
 
 
 def send_email(subject, body, to=DEFAULT_RECIPIENT, sender=DEFAULT_SENDER):
-    """Send a plain-text email via Gmail SMTP. Raises on failure."""
+    """Send a plain-text email via Gmail SMTP. Raises on failure.
+
+    `to` may be a single address or a list/tuple of addresses.
+    """
+    recipients = [to] if isinstance(to, str) else list(to)
+
     msg = MIMEText(body, "plain")
     msg["Subject"] = subject
     msg["From"] = sender
-    msg["To"] = to
+    msg["To"] = ", ".join(recipients)
 
     context = ssl.create_default_context()
     with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
         server.login(sender, _app_password())
-        server.sendmail(sender, [to], msg.as_string())
+        server.sendmail(sender, recipients, msg.as_string())
 
 
 if __name__ == "__main__":

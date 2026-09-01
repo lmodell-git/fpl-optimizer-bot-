@@ -4,6 +4,8 @@
 notify:
   window_hours: 26      # send the recommendation once inside this many hours of the deadline
   tighten_hours: 3      # inside this window, workflow re-runs every 15 min (slipped-cron guard)
+  recipients:          # everyone who gets the email; add more lines to fan out
+    - louismodell1001@gmail.com
 
 predict:
   horizon: 5            # gameweeks the projection + optimiser look ahead

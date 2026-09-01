@@ -51,9 +51,21 @@ def load_config() -> dict:
     return {}
 
 
+def _recipients() -> list[str]:
+    """notify.recipients from config.yaml, else emailer's built-in default."""
+    try:
+        rcpts = load_config().get("notify", {}).get("recipients") or []
+    except Exception:  # noqa: BLE001 — config must never block an alert email
+        rcpts = []
+    if rcpts:
+        return [str(r).strip() for r in rcpts if str(r).strip()]
+    from emailer import DEFAULT_RECIPIENT
+    return [DEFAULT_RECIPIENT]
+
+
 def _send(subject: str, body: str) -> None:
     from emailer import send_email  # local import so DRY_RUN needs no creds
-    send_email(subject, body)
+    send_email(subject, body, to=_recipients())
 
 
 def main() -> int:
