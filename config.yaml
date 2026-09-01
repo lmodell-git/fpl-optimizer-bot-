@@ -34,6 +34,15 @@ transfers:
 claude:
   web_search: true      # let the review pass pull very recent fitness/team news
 
+execute:                # AUTO-EXECUTION — off by every default. A live submit needs
+                        # ALL of: state.json auto_execute:true, armed:true, dry_run:false,
+                        # and the guardrail check below.
+  armed: false          # master switch
+  dry_run: true         # even when armed: log the payloads, POST nothing
+  require_verdict: [endorse]   # only auto-submit when Claude's verdict is in this list
+  max_auto_hit: 0       # max points of hits (-4 each) to auto-approve; 0 = free transfers only
+  freeze_minutes: 45    # never submit inside this many minutes of the deadline
+
 strategy:
   # profile_for_rank() curves live in fplbot/strategy.py — edit there to re-tune
   # how differential appetite and captain variance scale with overall rank.

@@ -1,0 +1,31 @@
+name: fpl-execute-dryrun
+
+# Manual only. Runs scripts/try_execute.py where the FPL_EMAIL / FPL_PASSWORD
+# secrets exist, so you can see whether the scripted login works from a GitHub
+# runner IP and what payloads the bot would submit. POSTs nothing unless you
+# tick "live" AND every guardrail in config.yaml passes.
+
+on:
+  workflow_dispatch:
+    inputs:
+      live:
+        description: "Allow a real POST if all guardrails pass (default: dry-run only)"
+        type: boolean
+        default: false
+
+jobs:
+  try:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Attempt execution
+        env:
+          FPL_EMAIL: ${{ secrets.FPL_EMAIL }}
+          FPL_PASSWORD: ${{ secrets.FPL_PASSWORD }}
+        run: |
+          python scripts/try_execute.py ${{ inputs.live && '--live' || '' }}

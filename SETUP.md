@@ -91,61 +91,68 @@ once).
 
 ---
 
-## 2. Auto-execution (not built yet)
+## 2. Auto-execution (built, disabled by default)
 
-Right now the bot **recommends**; you make the moves in the FPL app. Full
-auto-execution was in the brief but deferred deliberately — build a track record
-on the recommendations first, then turn this on behind a switch.
+`fplbot/execute.py` now exists: login flow, payload builders, guardrails. It is
+**off by every default** and cannot submit anything until you deliberately arm
+it. Build a track record on the recommendations first.
 
-### Why it's not just another API call
+### Blockers before it can run at all
+
+1. **An FPL team must exist** and `state.json` → `entry_id` must be set. Until
+   then `scripts/try_execute.py` exits with *"create the FPL team first"*.
+2. **`FPL_EMAIL` / `FPL_PASSWORD` must be reachable.** As repo secrets they only
+   exist inside GitHub Actions — run the `fpl-execute-dryrun` workflow
+   (Actions tab) to test from there. Locally, `export` them first.
+3. **The scripted login must actually work.** If FPL emails a new-device code or
+   shows a CAPTCHA, `execute.py` raises with a clear message and stops.
+
+### Try it (dry-run — submits nothing)
+
+Actions tab → **fpl-execute-dryrun** → Run workflow (leave *live* unticked). It
+logs in, fetches your team, prints the exact transfer + lineup payloads it
+*would* submit, and POSTs nothing. Watch this for a few gameweeks.
+
+Locally:
+
+```bash
+export FPL_EMAIL='...' FPL_PASSWORD='...'
+python scripts/try_execute.py          # dry-run
+```
+
+### Arming a live submit — ALL of these
+
+| Where | Set |
+|---|---|
+| `state.json` | `"auto_execute": true` |
+| `config.yaml` `execute:` | `armed: true` |
+| `config.yaml` `execute:` | `dry_run: false` |
+| guardrails (auto) | Claude verdict in `require_verdict` (default `[endorse]`), hits ≤ `max_auto_hit` (default 0), not inside `freeze_minutes` of the deadline |
+
+Any failure → the recommendation email still goes out, an alert email is sent,
+and `auto_execute` flips itself back to `false`.
+
+---
+
+### Background: why auto-execution is fragile
 
 FPL has **no official write API**. Reading (prices, fixtures, your picks) is
-open; making a transfer or setting a captain is not. Auto-execution means
-scripting the same **undocumented, reverse-engineered** flow the community
-`fpl` Python library uses:
+open; making a transfer or setting a captain is not. `execute.py` scripts the
+same **undocumented, reverse-engineered** flow the community `fpl` library uses:
 
-1. `POST https://users.premierleague.com/accounts/login/`
-   with `login`, `password`, `app=plfpl-web`, `redirect_uri=https://fantasy.premierleague.com/`
-   → capture the `pl_profile` cookie + session.
-2. `GET /api/my-team/{entry_id}/` (auth required) → current picks, bank, and the
-   **selling prices** (needed to compute a legal transfer).
-3. `POST /api/transfers/` with
-   `{"entry": id, "event": gw, "chips": null, "transfers": [{"element_in", "element_out", "purchase_price", "selling_price"}]}`.
-4. `POST /api/my-team/{entry_id}/` to set the XI, captain, vice and bench order.
+1. `POST users.premierleague.com/accounts/login/` (`login`, `password`,
+   `app=plfpl-web`, `redirect_uri`) → `pl_profile` cookie + session.
+2. `GET /api/my-team/{entry_id}/` → current picks, bank, **selling prices**.
+3. `POST /api/transfers/` →
+   `{"entry", "event", "chips", "transfers":[{"element_in","element_out","purchase_price","selling_price"}]}`.
+4. `POST /api/my-team/{entry_id}/` → XI (positions 1–11), bench (12–15),
+   captain / vice.
 
-### What you'd need to provide
+Risks to accept before arming it:
 
-| Thing | Notes |
-|---|---|
-| **FPL account email + password** | added by *you* as repo secrets `FPL_EMAIL` / `FPL_PASSWORD` — I never see them; the code reads them from the environment the same way `emailer.py` reads the Gmail password |
-| **No 2‑Step Verification on the FPL account** | the scripted login can't pass a 2FA / email-code challenge. If your account has it, auto-execution isn't viable without a manual token step |
-| **Guardrail decisions** | e.g. only auto-execute when the Claude verdict is `endorse` (not `amend`/`hold`); never auto-take more than N points of hits; hold off in the last 30 min before a deadline; a hard on/off switch |
-
-### What I'd build
-
-- `fplbot/execute.py` — login, session, `apply_transfers()`, `set_lineup()`,
-  each returning a structured result.
-- A `--execute` path in `run.py`, gated on **all** of:
-  `state.json` → `"auto_execute": true`  **AND**  a config threshold
-  (`execute.max_auto_hit`, `execute.require_verdict`)  **AND**  not within the
-  final safety window.
-- **Dry-run first**: logs the exact payload it *would* POST, sends it to you by
-  email, POSTs nothing — run that for a few weeks before flipping the switch.
-- **Failure alerting on every path**: any non-200, any login failure, any
-  schema surprise → immediate email, and `auto_execute` flips itself back to
-  `false` so it doesn't keep failing blind.
-- A `manual freeze` — set `auto_execute: false`, push, done — for weeks you want
-  to make a big call yourself.
-
-### Risks to accept before turning it on
-
-- Your FPL password sits in a GitHub secret (encrypted, not printed in logs, but
-  it's there).
-- FPL can change these endpoints or add bot protection (Cloudflare) at any time
-  and the bot breaks mid-season — the failure alert tells you, but a broken
-  auto-run that *looks* fine is the nightmare case, which is why dry-run-first
-  and verdict-gating matter.
-- A wrong transfer auto-executed can't be undone without a −4 (or a wildcard).
-
-When you want this, say so and give me the guardrail choices above — I'll build
-`execute.py` in dry-run mode first.
+- Your FPL password sits in a GitHub secret — encrypted, never printed in logs,
+  but it's there.
+- FPL can change these endpoints or add bot protection at any time and the bot
+  breaks mid-season. The failure alert + self-disable handle that; a broken run
+  that *looks* fine is why dry-run-first and verdict-gating matter.
+- A wrong auto-executed transfer can't be undone without a −4 (or a wildcard).
