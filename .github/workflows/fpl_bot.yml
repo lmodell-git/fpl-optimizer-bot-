@@ -2,17 +2,18 @@ name: fpl-optimizer-bot
 
 # GitHub's own cron can slip 10–30 min, and a fixed weekly Friday trigger would
 # silently miss the ~1-in-6 gameweeks whose deadline isn't a Friday. So we fire
-# every 15 minutes, but a dependency-free GATE step decides whether the run does
-# any real work:
+# hourly, and a dependency-free GATE step decides whether the run does any real
+# work:
 #   * always cheap: fetch the events endpoint, compute hours to the next deadline
 #   * run the full pipeline only when inside the notify window (or a manual run,
 #     or the 07:00 UTC daily heartbeat)
-# Inside the last 3h before a deadline every 15-min tick runs, so a slipped cron
-# still lands a recommendation in time.
+# The notify window is 26h and the "final" re-check window is 3h before a
+# deadline, so an hourly tick (plus GitHub's own slip) still lands comfortably
+# inside both — no need for 15-min resolution to hit an hours-wide window.
 
 on:
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "0 * * * *"
   workflow_dispatch:
     inputs:
       force_notify:
