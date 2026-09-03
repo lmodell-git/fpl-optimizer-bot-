@@ -80,9 +80,19 @@
   "bank": 10,
   "free_transfers": 1,
   "chips_used": [],
-  "last_event_processed": null,
+  "last_event_processed": 3,
   "overall_rank": null,
-  "history": [],
-  "notified_event": null,
+  "history": [
+    {
+      "ts": "2026-09-03T15:38:56+00:00",
+      "event": 3,
+      "mode": "transfer",
+      "stage": "opening",
+      "captain": "B.Fernandes",
+      "hits": 0,
+      "claude_verdict": "unavailable"
+    }
+  ],
+  "notified_event": 3,
   "notified_final": false
 }
