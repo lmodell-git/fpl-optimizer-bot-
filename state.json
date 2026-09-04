@@ -91,8 +91,17 @@
       "captain": "B.Fernandes",
       "hits": 0,
       "claude_verdict": "unavailable"
+    },
+    {
+      "ts": "2026-09-04T15:16:23+00:00",
+      "event": 3,
+      "mode": "transfer",
+      "stage": "final",
+      "captain": "B.Fernandes",
+      "hits": 3,
+      "claude_verdict": "unavailable"
     }
   ],
   "notified_event": 3,
-  "notified_final": false
+  "notified_final": true
 }
