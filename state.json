@@ -3,85 +3,85 @@
   "squad": [
     {
       "element": 1,
-      "purchase_price": 60,
-      "selling_price": 60
-    },
-    {
-      "element": 497,
-      "purchase_price": 40,
-      "selling_price": 40
+      "purchase_price": 0,
+      "selling_price": 0
     },
     {
       "element": 8,
-      "purchase_price": 56,
-      "selling_price": 56
-    },
-    {
-      "element": 115,
-      "purchase_price": 47,
-      "selling_price": 47
-    },
-    {
-      "element": 391,
-      "purchase_price": 56,
-      "selling_price": 56
-    },
-    {
-      "element": 586,
-      "purchase_price": 40,
-      "selling_price": 40
+      "purchase_price": 0,
+      "selling_price": 0
     },
     {
       "element": 259,
-      "purchase_price": 40,
-      "selling_price": 40
+      "purchase_price": 0,
+      "selling_price": 0
     },
     {
-      "element": 290,
-      "purchase_price": 45,
-      "selling_price": 45
+      "element": 115,
+      "purchase_price": 0,
+      "selling_price": 0
     },
     {
-      "element": 368,
-      "purchase_price": 70,
-      "selling_price": 70
+      "element": 391,
+      "purchase_price": 0,
+      "selling_price": 0
     },
     {
       "element": 426,
-      "purchase_price": 120,
-      "selling_price": 120
+      "purchase_price": 0,
+      "selling_price": 0
+    },
+    {
+      "element": 368,
+      "purchase_price": 0,
+      "selling_price": 0
     },
     {
       "element": 399,
-      "purchase_price": 77,
-      "selling_price": 77
+      "purchase_price": 0,
+      "selling_price": 0
     },
     {
-      "element": 565,
-      "purchase_price": 57,
-      "selling_price": 57
-    },
-    {
-      "element": 165,
-      "purchase_price": 77,
-      "selling_price": 77
-    },
-    {
-      "element": 346,
-      "purchase_price": 60,
-      "selling_price": 60
+      "element": 290,
+      "purchase_price": 0,
+      "selling_price": 0
     },
     {
       "element": 411,
-      "purchase_price": 155,
-      "selling_price": 155
+      "purchase_price": 0,
+      "selling_price": 0
+    },
+    {
+      "element": 165,
+      "purchase_price": 0,
+      "selling_price": 0
+    },
+    {
+      "element": 497,
+      "purchase_price": 0,
+      "selling_price": 0
+    },
+    {
+      "element": 586,
+      "purchase_price": 0,
+      "selling_price": 0
+    },
+    {
+      "element": 565,
+      "purchase_price": 0,
+      "selling_price": 0
+    },
+    {
+      "element": 346,
+      "purchase_price": 0,
+      "selling_price": 0
     }
   ],
-  "bank": 0,
-  "free_transfers": 1,
+  "bank": 1,
+  "free_transfers": 2,
   "chips_used": [],
-  "last_event_processed": 3,
-  "overall_rank": null,
+  "last_event_processed": 4,
+  "overall_rank": 10129765,
   "history": [
     {
       "ts": "2026-09-03T15:38:56+00:00",
@@ -100,8 +100,17 @@
       "captain": "B.Fernandes",
       "hits": 3,
       "claude_verdict": "unavailable"
+    },
+    {
+      "ts": "2026-09-11T11:15:21+00:00",
+      "event": 4,
+      "mode": "transfer",
+      "stage": "opening",
+      "captain": "B.Fernandes",
+      "hits": 0,
+      "claude_verdict": "unavailable"
     }
   ],
-  "notified_event": 3,
-  "notified_final": true
+  "notified_event": 4,
+  "notified_final": false
 }
