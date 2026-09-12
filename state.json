@@ -81,7 +81,7 @@
   "free_transfers": 2,
   "chips_used": [],
   "last_event_processed": 4,
-  "overall_rank": 10129765,
+  "overall_rank": 10129460,
   "history": [
     {
       "ts": "2026-09-03T15:38:56+00:00",
@@ -109,8 +109,17 @@
       "captain": "B.Fernandes",
       "hits": 0,
       "claude_verdict": "unavailable"
+    },
+    {
+      "ts": "2026-09-12T10:14:43+00:00",
+      "event": 4,
+      "mode": "transfer",
+      "stage": "final",
+      "captain": "B.Fernandes",
+      "hits": 0,
+      "claude_verdict": "unavailable"
     }
   ],
   "notified_event": 4,
-  "notified_final": false
+  "notified_final": true
 }
