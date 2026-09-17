@@ -3,78 +3,78 @@
   "squad": [
     {
       "element": 1,
-      "purchase_price": 0,
-      "selling_price": 0
+      "purchase_price": 60,
+      "selling_price": 60
     },
     {
       "element": 8,
-      "purchase_price": 0,
-      "selling_price": 0
+      "purchase_price": 56,
+      "selling_price": 57
     },
     {
       "element": 586,
-      "purchase_price": 0,
-      "selling_price": 0
+      "purchase_price": 40,
+      "selling_price": 40
     },
     {
       "element": 115,
-      "purchase_price": 0,
-      "selling_price": 0
+      "purchase_price": 47,
+      "selling_price": 48
     },
     {
       "element": 391,
-      "purchase_price": 0,
-      "selling_price": 0
+      "purchase_price": 56,
+      "selling_price": 56
     },
     {
       "element": 426,
-      "purchase_price": 0,
-      "selling_price": 0
+      "purchase_price": 120,
+      "selling_price": 120
     },
     {
       "element": 368,
-      "purchase_price": 0,
-      "selling_price": 0
+      "purchase_price": 70,
+      "selling_price": 70
     },
     {
       "element": 399,
-      "purchase_price": 0,
-      "selling_price": 0
+      "purchase_price": 77,
+      "selling_price": 77
     },
     {
       "element": 565,
-      "purchase_price": 0,
-      "selling_price": 0
+      "purchase_price": 57,
+      "selling_price": 57
     },
     {
       "element": 411,
-      "purchase_price": 0,
-      "selling_price": 0
+      "purchase_price": 155,
+      "selling_price": 155
     },
     {
       "element": 165,
-      "purchase_price": 0,
-      "selling_price": 0
+      "purchase_price": 77,
+      "selling_price": 77
     },
     {
       "element": 497,
-      "purchase_price": 0,
-      "selling_price": 0
+      "purchase_price": 40,
+      "selling_price": 40
     },
     {
       "element": 346,
-      "purchase_price": 0,
-      "selling_price": 0
+      "purchase_price": 60,
+      "selling_price": 60
     },
     {
       "element": 290,
-      "purchase_price": 0,
-      "selling_price": 0
+      "purchase_price": 45,
+      "selling_price": 45
     },
     {
       "element": 259,
-      "purchase_price": 0,
-      "selling_price": 0
+      "purchase_price": 40,
+      "selling_price": 40
     }
   ],
   "bank": 1,

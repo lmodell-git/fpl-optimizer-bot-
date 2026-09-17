@@ -220,6 +220,10 @@ def solve_horizon(
 
     per_gw: list[GWPlan] = []
     prev_squad = set(owned0)
+    # The ft[] variables are only upper-bounded, so in a week with no transfers
+    # CBC leaves them at the lower bound (1) — reconstruct the banked count
+    # deterministically for the report from the same rules the constraints use.
+    ft_now = min(MAX_FREE_TRANSFERS, max(1, state.free_transfers))
     for g in H:
         ev = horizon_events[g]
         squad_g = {e for e in ids if own[e][g].value() > 0.5}
@@ -241,12 +245,19 @@ def solve_horizon(
             bench_order=bench,
             chip=chip_schedule.get(ev),
             hits=int(round(hits[g].value() or 0)),
-            free_transfers_before=int(round(ft[g].value() or 1)),
+            free_transfers_before=ft_now,
             expected_points=round(
                 sum(xp(e, g) for e in xi) + xp(cap, g)
                 - HIT_COST * (hits[g].value() or 0), 2),
         ))
         prev_squad = squad_g
+        n_hits = int(round(hits[g].value() or 0))
+        if chip_schedule.get(ev) in ("wildcard", "freehit"):
+            ft_now = min(2, ft_now + 1)          # mirrors the ft[g+1] <= 2 constraint
+        elif n_hits:
+            ft_now = 1
+        else:
+            ft_now = min(MAX_FREE_TRANSFERS, ft_now - len(ins) + 1)
 
     return TransferPlan(
         horizon=horizon_events,

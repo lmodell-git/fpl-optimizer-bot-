@@ -132,17 +132,50 @@ class TeamState:
                 picks = fpl_api.entry_picks(self.entry_id, pev)
             except fpl_api.NotFound:
                 continue
-            self.squad = [Pick.from_api(p) for p in picks["picks"]]
+            self.squad = self._picks_with_prices(picks["picks"])
             self.bank = picks.get("entry_history", {}).get("bank", self.bank)
             return True
 
         # No public squad yet — fine if state.json was pre-filled by hand.
         return len(self.squad) == 15
 
+    def _picks_with_prices(self, api_picks: list[dict]) -> list[Pick]:
+        """Build Picks from the public picks endpoint, which carries NO prices.
+
+        Only the authenticated my-team endpoint returns purchase/selling prices.
+        Without them every pick used to sync as £0.0m, so the transfer solver
+        thought a sale raised nothing and could never afford a buy. Instead:
+        keep the purchase price we already hold for a player we still own,
+        assume a newly-seen player was bought at today's price, and derive the
+        selling price with FPL's half-profit rule from the live `now_cost`.
+        """
+        now_cost = {pid: pl["now_cost"] for pid, pl in fpl_api.players_by_id().items()}
+        known = {pk.element: pk.purchase_price for pk in self.squad if pk.purchase_price > 0}
+        out: list[Pick] = []
+        for d in api_picks:
+            if d.get("selling_price") or d.get("purchase_price"):
+                out.append(Pick.from_api(d))
+                continue
+            e = d["element"]
+            cur = now_cost.get(e, 0)
+            purchase = known.get(e, cur)
+            out.append(Pick(element=e, purchase_price=purchase,
+                            selling_price=selling_price(purchase, cur)))
+        return out
+
     def log_run(self, entry: dict) -> None:
         entry = {"ts": datetime.now(timezone.utc).isoformat(timespec="seconds"), **entry}
         self.history.append(entry)
         self.history = self.history[-50:]
+
+
+def selling_price(purchase_price: int, now_cost: int) -> int:
+    """FPL's sell rule: you keep half of any rise (rounded down to 0.1m), all of a fall."""
+    if purchase_price <= 0 or now_cost <= 0:
+        return max(purchase_price, now_cost, 0)
+    if now_cost <= purchase_price:
+        return now_cost
+    return purchase_price + (now_cost - purchase_price) // 2
 
 
 def _infer_free_transfers(history: dict, upcoming_event: int) -> int:
