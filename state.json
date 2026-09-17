@@ -12,7 +12,7 @@
       "selling_price": 0
     },
     {
-      "element": 259,
+      "element": 586,
       "purchase_price": 0,
       "selling_price": 0
     },
@@ -42,7 +42,7 @@
       "selling_price": 0
     },
     {
-      "element": 290,
+      "element": 565,
       "purchase_price": 0,
       "selling_price": 0
     },
@@ -62,26 +62,26 @@
       "selling_price": 0
     },
     {
-      "element": 586,
-      "purchase_price": 0,
-      "selling_price": 0
-    },
-    {
-      "element": 565,
-      "purchase_price": 0,
-      "selling_price": 0
-    },
-    {
       "element": 346,
+      "purchase_price": 0,
+      "selling_price": 0
+    },
+    {
+      "element": 290,
+      "purchase_price": 0,
+      "selling_price": 0
+    },
+    {
+      "element": 259,
       "purchase_price": 0,
       "selling_price": 0
     }
   ],
   "bank": 1,
-  "free_transfers": 2,
+  "free_transfers": 3,
   "chips_used": [],
-  "last_event_processed": 4,
-  "overall_rank": 10129460,
+  "last_event_processed": 5,
+  "overall_rank": 9877119,
   "history": [
     {
       "ts": "2026-09-03T15:38:56+00:00",
@@ -118,8 +118,17 @@
       "captain": "B.Fernandes",
       "hits": 0,
       "claude_verdict": "unavailable"
+    },
+    {
+      "ts": "2026-09-17T16:17:00+00:00",
+      "event": 5,
+      "mode": "transfer",
+      "stage": "opening",
+      "captain": "Haaland",
+      "hits": 0,
+      "claude_verdict": "unavailable"
     }
   ],
-  "notified_event": 4,
-  "notified_final": true
+  "notified_event": 5,
+  "notified_final": false
 }
