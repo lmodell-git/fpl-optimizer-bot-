@@ -81,7 +81,7 @@
   "free_transfers": 3,
   "chips_used": [],
   "last_event_processed": 5,
-  "overall_rank": 9877091,
+  "overall_rank": 9876956,
   "history": [
     {
       "ts": "2026-09-03T15:38:56+00:00",
@@ -136,8 +136,17 @@
       "captain": "Haaland",
       "hits": 0,
       "claude_verdict": "unavailable"
+    },
+    {
+      "ts": "2026-09-18T15:17:20+00:00",
+      "event": 5,
+      "mode": "transfer",
+      "stage": "final",
+      "captain": "Haaland",
+      "hits": 0,
+      "claude_verdict": "unavailable"
     }
   ],
   "notified_event": 5,
-  "notified_final": false
+  "notified_final": true
 }
