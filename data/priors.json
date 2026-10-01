@@ -287,6 +287,15 @@
 "seasons": 2,
 "start_rate": 0.6913
 },
+"154043": {
+"att_p90": 0.1219,
+"bonus_p90": 0.0,
+"defcon_p90": 0.0,
+"minutes": 1663,
+"saves_p90": 0.0,
+"seasons": 2,
+"start_rate": 0.2703
+},
 "154561": {
 "att_p90": 0.0044,
 "bonus_p90": 0.2842,
@@ -502,6 +511,15 @@
 "saves_p90": 0.0,
 "seasons": 2,
 "start_rate": 0.4514
+},
+"172850": {
+"att_p90": 1.4217,
+"bonus_p90": 0.1229,
+"defcon_p90": 4.4839,
+"minutes": 1006,
+"saves_p90": 0.0,
+"seasons": 2,
+"start_rate": 0.1344
 },
 "173879": {
 "att_p90": 3.0043,
@@ -1727,6 +1745,15 @@
 "seasons": 2,
 "start_rate": 0.5266
 },
+"245719": {
+"att_p90": 0.4054,
+"bonus_p90": 0.0637,
+"defcon_p90": 7.6806,
+"minutes": 2824,
+"saves_p90": 0.0,
+"seasons": 1,
+"start_rate": 0.8421
+},
 "246301": {
 "att_p90": 0.1429,
 "bonus_p90": 0.07,
@@ -1861,6 +1888,15 @@
 "saves_p90": 0.0,
 "seasons": 2,
 "start_rate": 0.7632
+},
+"431639": {
+"att_p90": 1.6832,
+"bonus_p90": 0.5612,
+"defcon_p90": 5.051,
+"minutes": 1764,
+"saves_p90": 0.0,
+"seasons": 1,
+"start_rate": 0.5526
 },
 "432422": {
 "att_p90": 0.7829,
@@ -4048,6 +4084,15 @@
 "saves_p90": 0.0,
 "seasons": 1,
 "start_rate": 0.3158
+},
+"626464": {
+"att_p90": 0.0,
+"bonus_p90": 0.0,
+"defcon_p90": 40.9091,
+"minutes": 11,
+"saves_p90": 0.0,
+"seasons": 1,
+"start_rate": 0.0
 },
 "631786": {
 "att_p90": 0.3857,
