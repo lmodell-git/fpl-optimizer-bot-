@@ -11,7 +11,7 @@ notify:
 predict:
   horizon: 5            # gameweeks the projection + optimiser look ahead
   decay: 0.84           # weight of GW n+k relative to n is decay**k
-  api_anchor_weight: 0.35   # blend the next-GW xP toward FPL's own ep_next
+  api_anchor_weight: 0.10   # blend the next-GW xP toward FPL's own ep_next (≈ form — keep low)
   bench_weight: 0.15    # how much bench xP counts toward the objective
   penalty_bonus_p90: 0.9    # extra xP/90 for the nailed penalty taker
   corner_bonus_p90: 0.15

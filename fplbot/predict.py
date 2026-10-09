@@ -42,7 +42,7 @@ DEFCON_PTS = 2
 class Params:
     horizon: int = 5                 # gameweeks to look ahead
     decay: float = 0.84              # weight of GW n+k is decay**k
-    api_anchor_weight: float = 0.22  # blend toward FPL's own ep_next (lower now priors exist)
+    api_anchor_weight: float = 0.10  # blend toward FPL's own ep_next (≈ form; weak predictor)
     bench_weight: float = 0.15       # how much bench xP counts in the objective
     min_minutes_full: int = 60       # "played 60+" threshold for the 2nd appearance pt
     penalty_bonus_p90: float = 0.9   # extra xP/90 for the nailed penalty taker
@@ -323,11 +323,13 @@ def project(cfg: dict | None = None, *, horizon_events: list[int] | None = None)
                 gw_xp += max(0.0, min(params.max_fixture_xp, fx_xp))
             per_gw.append(round(gw_xp, 3))
 
-        # Blend every GW toward FPL's own ep_next, weighting the anchor harder
-        # when our own sample is thin (a 1-minute player has no usable rate).
+        # Blend every GW toward FPL's own ep_next (≈ recent form), weighting the
+        # anchor harder only when we have almost no sample of our own. Keyed off
+        # a fixed 180-min cutoff, not shrink_minutes — early season every
+        # nailed starter sits under shrink_minutes and form would dominate.
         api_ep = _f(p, "ep_next")
         minutes = _f(p, "minutes")
-        thin = params.shrink_minutes / (minutes + params.shrink_minutes)
+        thin = 90.0 / (minutes + 90.0) if minutes < 180 else 0.0
         w0 = min(0.9, params.api_anchor_weight + (1 - params.api_anchor_weight) * thin)
         for i in range(len(per_gw)):
             # Anchor fades across the horizon (ep_next only really speaks to GW+1).
