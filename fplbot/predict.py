@@ -102,26 +102,90 @@ def team_fixtures_by_event(horizon_events: Iterable[int]) -> dict[int, dict[int,
     return out
 
 
-def _strength(team: dict, kind: str, home: bool) -> float:
-    """Normalised (~1.0) team strength for attack/defence, home or away.
+LEAGUE_GOALS = 1.37   # mean goals per team per PL match
 
-    Early in the season the split attack/defence fields can be 0; fall back to
-    the overall split, then to a neutral 1.0.
+
+def team_ratings(boot: dict, fixtures: list[dict]) -> dict[int, tuple[float, float]]:
+    """{team: (attack, defence)} as expected goals scored / conceded per match.
+
+    This season's xG for (sum of players' xG) and xG against (from the
+    team's most-used player's xGC/90 — normally the keeper), shrunk toward a
+    prior from FPL's 2–5 team strength while the sample is small.
     """
-    ha = "home" if home else "away"
-    val = team.get(f"strength_{kind}_{ha}") or team.get(f"strength_overall_{ha}") or 0
-    if not val:
-        return 1.0
-    # League strength values sit roughly in 1000–1400 (split) or 2–5 (overall).
-    return val / 1150.0 if val > 100 else val / 3.0
+    games: dict[int, int] = {}
+    for fx in fixtures:
+        if fx.get("finished"):
+            for side in ("team_h", "team_a"):
+                games[fx[side]] = games.get(fx[side], 0) + 1
+    xg: dict[int, float] = {}
+    xgc90: dict[int, tuple[float, float]] = {}   # team -> (minutes, xGC/90) of most-used player
+    for p in boot["elements"]:
+        t = p["team"]
+        xg[t] = xg.get(t, 0.0) + _f(p, "expected_goals")
+        m = _f(p, "minutes")
+        if m > xgc90.get(t, (0.0, 0.0))[0]:
+            xgc90[t] = (m, _f(p, "expected_goals_conceded") * 90.0 / m)
+    out = {}
+    for t in boot["teams"]:
+        tid = t["id"]
+        s = (t.get("strength") or t.get("strength_overall_home") or 3) / 3.0
+        prior_att, prior_def = LEAGUE_GOALS * s ** 0.9, LEAGUE_GOALS / s ** 0.9
+        n, k = games.get(tid, 0), 5.0
+        att = (xg.get(tid, 0.0) + k * prior_att) / (n + k) if n else prior_att
+        d_obs = xgc90.get(tid, (0.0, 0.0))[1]
+        dfn = (n * d_obs + k * prior_def) / (n + k) if n and d_obs else prior_def
+        out[tid] = (att, dfn)
+    return out
+
+
+def _expected_goals(att: float, opp_def: float, home: bool, params: "Params") -> float:
+    lam = att * opp_def / LEAGUE_GOALS
+    return lam * (params.home_advantage if home else 1.0 / params.home_advantage)
+
+
+def _poisson_half_conceded(lam: float) -> float:
+    """E[floor(goals/2)] for Poisson goals — the DEF/GKP -1 per 2 conceded."""
+    import math
+    tot, pk = 0.0, math.exp(-lam)
+    for k in range(0, 12):
+        if k:
+            pk *= lam / k
+        tot += (k // 2) * pk
+    return tot
 
 
 # --------------------------------------------------------------------------- #
 # Minutes model                                                              #
 # --------------------------------------------------------------------------- #
 
+def recent_histories(players: list[dict]) -> dict[int, list[dict]]:
+    """{element: per-fixture history rows, oldest first} for anyone who has played.
+
+    One element-summary call per player (concurrent). A player with 0 minutes
+    has no starts to read, so they're skipped. Failures just drop the player —
+    the minutes model then falls back to season totals.
+    """
+    import concurrent.futures as cf
+    ids = [p["id"] for p in players if _f(p, "minutes") > 0]
+    out: dict[int, list[dict]] = {}
+    with cf.ThreadPoolExecutor(max_workers=12) as ex:
+        futs = {ex.submit(fpl_api.element_summary, i): i for i in ids}
+        for fut in cf.as_completed(futs):
+            try:
+                rows = fut.result().get("history", [])
+            except Exception:  # noqa: BLE001
+                continue
+            out[futs[fut]] = sorted(rows, key=lambda r: (r["round"], r.get("kickoff_time") or ""))
+    return out
+
+
+# Weights on the player's last three team fixtures, newest first.
+RECENT_WEIGHTS = (0.5, 0.3, 0.2)
+
+
 def _start_probability(p: dict, games_so_far: int, params: Params,
-                       prior: dict | None) -> tuple[float, list[str]]:
+                       prior: dict | None,
+                       recent: list[dict] | None = None) -> tuple[float, list[str]]:
     notes: list[str] = []
     status = p.get("status", "a")
     chance = p.get("chance_of_playing_next_round")
@@ -138,22 +202,30 @@ def _start_probability(p: dict, games_so_far: int, params: Params,
     else:
         base = 1.0
 
-    # Minutes consistency: this season's starts/minutes, shrunk toward last
-    # season's start rate while the current sample is thin.
-    mins = p.get("minutes", 0)
-    starts = p.get("starts", 0)
-    prior_rate = prior["start_rate"] if prior else 0.62
+    # Minutes consistency: this season's starts/minutes — weighted toward the
+    # last few fixtures (losing your place is the strongest signal there is) —
+    # shrunk toward last season's start rate while the sample is thin.
+    mins = _f(p, "minutes")
+    starts = _f(p, "starts")
+    prior_rate = prior["start_rate"] if prior else 0.45
     if games_so_far > 0:
-        w = min(1.0, games_so_far / 6.0)          # trust this season fully by ~GW6
-        this_rate = 0.55 * (starts / games_so_far) + 0.45 * min(1.0, mins / (games_so_far * 90.0))
+        w = min(1.0, games_so_far / 4.0)
+        this_rate = 0.55 * min(1.0, starts / games_so_far) + 0.45 * min(1.0, mins / (games_so_far * 90.0))
+        last = (recent or [])[-len(RECENT_WEIGHTS):][::-1]
+        if last:
+            ws = RECENT_WEIGHTS[:len(last)]
+            rec = sum(wt * min(1.0, _f(r, "minutes") / 90.0) for wt, r in zip(ws, last)) / sum(ws)
+            this_rate = 0.4 * this_rate + 0.6 * rec
+        elif mins == 0:
+            this_rate = 0.0
         consistency = w * this_rate + (1 - w) * prior_rate
-        if starts / games_so_far < 0.5 and w > 0.4:
-            notes.append(f"started {starts}/{games_so_far} — rotation risk")
+        if consistency < 0.5 and w > 0.4:
+            notes.append(f"started {int(starts)}/{games_so_far} — rotation risk")
     else:
         consistency = prior_rate
         notes.append("pre-season — using last-year start rate" if prior
                      else "no history — minutes uncertain")
-    base *= 0.30 + 0.70 * consistency
+    base *= consistency
     return max(0.0, min(1.0, base)), notes
 
 
@@ -217,15 +289,18 @@ def _attacking_p90(p: dict, pos: str, params: Params,
     return pts, notes
 
 
-def _defensive_p90(p: dict, pos: str, opp_attack: float, params: Params,
+def _defensive_p90(p: dict, pos: str, lam_against: float, params: Params,
                    prior: dict | None) -> float:
+    import math
     minutes = _f(p, "minutes")
     if pos == "FWD":
         cs_component = 0.0
     else:
-        # Clean-sheet probability from opponent attacking strength (~1.0 neutral).
-        cs_prob = max(0.05, min(0.6, 0.33 / max(0.4, opp_attack)))
-        cs_component = cs_prob * CS_PTS[pos]
+        # Poisson clean-sheet chance from this fixture's expected goals against;
+        # DEF/GKP also lose 1 per 2 conceded.
+        cs_component = math.exp(-lam_against) * CS_PTS[pos]
+        if pos in ("DEF", "GKP"):
+            cs_component -= _poisson_half_conceded(lam_against)
 
     # Defensive-contribution points: per-90 CBIT/tackles/recoveries, shrunk hard
     # (a 1-minute cameo can report defcon90 = 90).
@@ -277,7 +352,6 @@ def project(cfg: dict | None = None, *, horizon_events: list[int] | None = None)
     """Return a PlayerXP for every non-removed player, sorted by weighted xP desc."""
     params = Params.from_config(cfg or {})
     boot = fpl_api.bootstrap_static()
-    teams = fpl_api.teams_by_id()
 
     if horizon_events is None:
         nxt = fpl_api.next_event()["id"]
@@ -285,6 +359,8 @@ def project(cfg: dict | None = None, *, horizon_events: list[int] | None = None)
     fx_map = team_fixtures_by_event(horizon_events)
 
     finished = sum(1 for e in boot["events"] if e["finished"])
+    ratings = team_ratings(boot, fpl_api.fixtures())
+    recent = recent_histories(boot["elements"]) if finished else {}
 
     out: list[PlayerXP] = []
     for p in boot["elements"]:
@@ -292,7 +368,8 @@ def project(cfg: dict | None = None, *, horizon_events: list[int] | None = None)
             continue
         pos = fpl_api.POS_BY_TYPE[p["element_type"]]
         prior = priors.prior_for(p.get("code"))
-        start_prob, min_notes = _start_probability(p, finished, params, prior)
+        start_prob, min_notes = _start_probability(p, finished, params, prior,
+                                                   recent.get(p["id"]))
 
         att90, att_notes = _attacking_p90(p, pos, params, prior)
         bonus90 = _bonus_p90(p, params, prior)
@@ -303,15 +380,14 @@ def project(cfg: dict | None = None, *, horizon_events: list[int] | None = None)
             fixtures_this_ev = fx_map.get(ev, {}).get(p["team"], [])
             gw_xp = 0.0
             for fx in fixtures_this_ev:
-                opp = teams.get(fx["opponent"], {})
-                me = teams.get(p["team"], {})
-                att_mult = (
-                    _strength(me, "attack", fx["home"])
-                    / max(0.5, _strength(opp, "defence", not fx["home"]))
-                ) ** params.fixture_swing
-                att_mult *= params.home_advantage if fx["home"] else 1.0 / params.home_advantage
-                opp_attack = _strength(opp, "attack", not fx["home"])
-                def90 = _defensive_p90(p, pos, opp_attack, params, prior)
+                my_att, my_def = ratings[p["team"]]
+                op_att, op_def = ratings[fx["opponent"]]
+                lam_for = _expected_goals(my_att, op_def, fx["home"], params)
+                lam_against = _expected_goals(op_att, my_def, not fx["home"], params)
+                # A player's per-90 rates already reflect his team's average
+                # fixture; scale by how this one compares.
+                att_mult = (lam_for / my_att) ** params.fixture_swing
+                def90 = _defensive_p90(p, pos, lam_against, params, prior)
 
                 minutes_factor = start_prob * 0.9 + 0.1 * (start_prob ** 0.5)
                 appearance = start_prob * 1.0 + start_prob * 0.82  # ~P(60+) ≈ 0.82·P(start)
