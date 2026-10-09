@@ -1,14 +1,12 @@
 """Captain choice — the single biggest swing decision of a season.
 
-Template (highest effective-ownership) captaincy tracks the field: low variance,
-roughly rank-neutral. A differential captain only pays when
+The armband doubles a player's expected points, so the pick is the highest
+next-GW xP among nailed starters. Two tie-breaks only:
 
-  * its expected points are genuinely close to the template pick
-    (within `RiskProfile.captain_diff_threshold`, typically ~1–1.5 pts), AND
-  * the underlying data (fixture, xGI, secure minutes) is clearly better, AND
-  * effective-ownership maths favours the punt for your rank.
-
-This module computes that gap and only recommends off-template when it clears.
+  * within PRICE_TIEBREAK_XP, the pricier player (price is the market's view of
+    quality, and the model's top-end projections run optimistic), and
+  * within DIFFERENTIAL_TIE_XP, a much lower-owned option when the rank profile
+    wants to climb — never a knowingly lower-xP punt.
 """
 
 from __future__ import annotations
@@ -41,6 +39,13 @@ def _ownership(el_id: int) -> float:
         return 0.0
 
 
+# Captaincy is an expected-points decision: the armband doubles the mean, so a
+# lower-xP "differential" is a straight EV loss unless it's essentially tied.
+NAILED_START_PROB = 0.75   # a benched captain hands the armband to the vice
+PRICE_TIEBREAK_XP = 0.5    # within this, prefer the pricier (market-rated) player
+DIFFERENTIAL_TIE_XP = 0.25  # a lower-owned pick only when it's this close
+
+
 def choose_captain(
     squad_ids: list[int],
     projections: list[PlayerXP],
@@ -48,50 +53,38 @@ def choose_captain(
     *,
     solver_captain: int | None = None,
 ) -> CaptainPick:
-    """Pick a captain from the XI-eligible squad, honouring the template rule."""
+    """Highest next-GW xP among nailed starters, with price / ownership tie-breaks."""
     idx = {p.element: p for p in projections}
-    cands = [idx[e] for e in squad_ids if e in idx and idx[e].start_prob > 0.5]
-    if not cands:
-        cands = [idx[e] for e in squad_ids if e in idx]
+    squad = [idx[e] for e in squad_ids if e in idx]
+    cands = ([p for p in squad if p.start_prob >= NAILED_START_PROB]
+             or [p for p in squad if p.start_prob > 0.5] or squad)
 
-    by_xp = sorted(cands, key=lambda p: p.next_gw, reverse=True)
-    template = max(cands, key=lambda p: (_ownership(p.element), p.next_gw))
-    top_xp = by_xp[0]
+    top_xp = max(p.next_gw for p in cands)
+    near = [p for p in cands if p.next_gw >= top_xp - PRICE_TIEBREAK_XP]
+    best = max(near, key=lambda p: (p.cost, p.next_gw))
+    # "Template" = the most-owned of the near-top options — what the field captains.
+    template = max(near, key=lambda p: (_ownership(p.element), p.next_gw))
 
-    # The template captain is whichever of {highest xP, highest owned} the field
-    # will actually pile onto — approximate as the higher-owned of the top 3 xP.
-    template = max(by_xp[:3], key=lambda p: _ownership(p.element))
+    if len(near) > 1 and best.element != max(near, key=lambda p: p.next_gw).element:
+        rationale = (f"{best.name} ({best.next_gw:.2f} xP) — within {PRICE_TIEBREAK_XP} xP of "
+                     f"the top projection, so the pricier, more proven player gets it")
+    else:
+        rationale = f"{best.name} — highest projection among nailed starters ({best.next_gw:.2f} xP)"
 
-    best = template
+    # Differential: only an essentially-tied, much less-owned option, and only
+    # when the rank profile wants to climb.
     gap = 0.0
-    rationale = (
-        f"template pick — {template.name} is both a top-xP option "
-        f"({template.next_gw:.2f}) and the most-owned ({_ownership(template.element):.1f}%)"
-    )
-
-    # Is there a live differential that clears the bar?
-    for cand in by_xp:
-        if cand.element == template.element:
-            continue
-        g = template.next_gw - cand.next_gw
-        own_edge = _ownership(template.element) - _ownership(cand.element)
-        better_underlying = cand.start_prob >= template.start_prob and g <= profile.captain_diff_threshold
-        if better_underlying and own_edge > 8.0 and profile.differential_appetite >= 0.5:
-            best = cand
-            gap = round(g, 2)
-            rationale = (
-                f"differential captain — {cand.name} is within {g:.2f} xP of template "
-                f"{template.name}, at {_ownership(cand.element):.1f}% vs "
-                f"{_ownership(template.element):.1f}% owned; rank profile "
-                f"({profile.label}) wants the climb"
-            )
-            break
-
-    if solver_captain is not None and solver_captain in idx and best.element == template.element:
-        sc = idx[solver_captain]
-        if sc.next_gw >= template.next_gw - 0.05:
-            best = sc
-            rationale = f"solver + template agree on {sc.name} ({sc.next_gw:.2f} xP next GW)"
+    if profile.differential_appetite >= 0.5:
+        for cand in sorted(cands, key=lambda p: -p.next_gw):
+            g = best.next_gw - cand.next_gw
+            if cand.element == best.element or g > DIFFERENTIAL_TIE_XP:
+                continue
+            if _ownership(best.element) - _ownership(cand.element) > 8.0:
+                rationale = (f"differential captain — {cand.name} is within {g:.2f} xP of "
+                             f"{best.name}, at {_ownership(cand.element):.1f}% vs "
+                             f"{_ownership(best.element):.1f}% owned ({profile.label})")
+                best, gap = cand, round(g, 2)
+                break
 
     return CaptainPick(
         element=best.element,

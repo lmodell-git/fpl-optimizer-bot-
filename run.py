@@ -167,6 +167,12 @@ def main() -> int:
     solver_cap = plan.next_gw.captain if (plan.per_gw and not plan.infeasible) else None
     captain = choose_captain(squad_for_captain, projections, profile, solver_captain=solver_cap)
     print(f"[captain] {captain.name} ({'template' if captain.is_template else 'differential'})")
+    # Keep the plan's GW line consistent with the captain call.
+    if plan.per_gw and not plan.infeasible and captain.element != plan.next_gw.captain:
+        g0 = plan.next_gw
+        if g0.vice_captain == captain.element:
+            g0.vice_captain = g0.captain
+        g0.captain = captain.element
 
     # step 5 — Claude review
     review = None
