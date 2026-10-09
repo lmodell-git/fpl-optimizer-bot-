@@ -118,6 +118,7 @@ class TeamState:
             {"chip": c["name"], "event": c["event"]} for c in hist.get("chips", [])
         ]
         self.free_transfers = _infer_free_transfers(hist, upcoming_event)
+        freehit_events = {c["event"] for c in hist.get("chips", []) if c["name"] == "freehit"}
 
         # Picks are public only for gameweeks that have started AND that this
         # entry actually played. A brand-new team (started_event == upcoming) has
@@ -127,7 +128,9 @@ class TeamState:
         candidates = [e for e in played if e < upcoming_event] or (
             [started] if started < upcoming_event else []
         )
-        for pev in reversed(candidates):
+        # A Free Hit squad lasts one GW, then the team reverts — so skip FH weeks
+        # and read the squad (and bank) from the GW before.
+        for pev in reversed([e for e in candidates if e not in freehit_events]):
             try:
                 picks = fpl_api.entry_picks(self.entry_id, pev)
             except fpl_api.NotFound:
@@ -185,9 +188,12 @@ def _infer_free_transfers(history: dict, upcoming_event: int) -> int:
     `event_transfers` and reconstructs it under the current (max 5) rules.
     """
     ft = 1
+    # Wildcard / Free Hit moves don't consume FTs, and the GW still banks +1.
+    chip_events = {c["event"] for c in history.get("chips", [])
+                   if c["name"] in ("wildcard", "freehit")}
     for row in sorted(history.get("current", []), key=lambda r: r["event"]):
         if row["event"] >= upcoming_event:
             break
-        made = row.get("event_transfers", 0)
+        made = 0 if row["event"] in chip_events else row.get("event_transfers", 0)
         ft = max(1, min(MAX_FREE_TRANSFERS, ft - made + 1))
     return ft

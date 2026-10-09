@@ -181,7 +181,7 @@ def solve_horizon(
             prob += ft[g + 1] <= ft[g] - tmade + 1 + BIG_M * took_hit[g]
             prob += ft[g + 1] <= 1 + BIG_M * (1 - took_hit[g])
         elif g + 1 in H and free_week:
-            prob += ft[g + 1] <= 2  # a played chip doesn't consume the saved FT
+            prob += ft[g + 1] <= ft[g] + 1  # a played chip doesn't consume the saved FT
         if g == 0:
             prob += ft[0] == min(MAX_FREE_TRANSFERS, max(1, state.free_transfers))
 
@@ -253,7 +253,7 @@ def solve_horizon(
         prev_squad = squad_g
         n_hits = int(round(hits[g].value() or 0))
         if chip_schedule.get(ev) in ("wildcard", "freehit"):
-            ft_now = min(2, ft_now + 1)          # mirrors the ft[g+1] <= 2 constraint
+            ft_now = min(MAX_FREE_TRANSFERS, ft_now + 1)  # mirrors the ft[g+1] <= ft[g]+1 constraint
         elif n_hits:
             ft_now = 1
         else:
