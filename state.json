@@ -12,9 +12,9 @@
       "selling_price": 57
     },
     {
-      "element": 586,
-      "purchase_price": 40,
-      "selling_price": 40
+      "element": 330,
+      "purchase_price": 46,
+      "selling_price": 46
     },
     {
       "element": 115,
@@ -29,22 +29,22 @@
     {
       "element": 426,
       "purchase_price": 120,
-      "selling_price": 120
+      "selling_price": 119
     },
     {
       "element": 368,
       "purchase_price": 70,
-      "selling_price": 70
+      "selling_price": 69
     },
     {
-      "element": 399,
-      "purchase_price": 77,
-      "selling_price": 77
+      "element": 12,
+      "purchase_price": 96,
+      "selling_price": 96
     },
     {
       "element": 565,
       "purchase_price": 57,
-      "selling_price": 57
+      "selling_price": 56
     },
     {
       "element": 411,
@@ -52,9 +52,9 @@
       "selling_price": 155
     },
     {
-      "element": 165,
-      "purchase_price": 77,
-      "selling_price": 77
+      "element": 316,
+      "purchase_price": 55,
+      "selling_price": 55
     },
     {
       "element": 497,
@@ -77,11 +77,11 @@
       "selling_price": 40
     }
   ],
-  "bank": 1,
-  "free_transfers": 3,
+  "bank": 0,
+  "free_transfers": 1,
   "chips_used": [],
-  "last_event_processed": 5,
-  "overall_rank": 9876956,
+  "last_event_processed": 6,
+  "overall_rank": 10040804,
   "history": [
     {
       "ts": "2026-09-03T15:38:56+00:00",
@@ -144,6 +144,15 @@
       "stage": "final",
       "captain": "Haaland",
       "hits": 0,
+      "claude_verdict": "unavailable"
+    },
+    {
+      "ts": "2026-10-09T14:46:33+00:00",
+      "event": 6,
+      "mode": "transfer",
+      "stage": "manual",
+      "captain": "Gro\u00df",
+      "hits": 3,
       "claude_verdict": "unavailable"
     }
   ],
