@@ -105,6 +105,10 @@ def solve_horizon(
     tp = cfg.get("transfers", {})
     decay = tp.get("decay", 0.84)
     bench_weight = tp.get("bench_weight", 0.15)
+    # A hit's -4 is certain; the projected gain isn't. The solver must see a
+    # clear margin (hit_penalty > HIT_COST) and may take at most max_hits_per_gw.
+    hit_penalty = tp.get("hit_penalty", 8.0)
+    max_hits = tp.get("max_hits_per_gw", 1)
     chip_schedule = dict(chip_schedule or {})
 
     players = _pool(state, projections, cfg)
@@ -175,6 +179,7 @@ def solve_horizon(
             prob += took_hit[g] == 0
         else:
             prob += hits[g] >= tmade - ft[g]
+            prob += hits[g] <= max_hits
             prob += tmade - ft[g] <= BIG_M * took_hit[g]
             prob += hits[g] <= BIG_M * took_hit[g]
         if g + 1 in H and not free_week:
@@ -200,7 +205,7 @@ def solve_horizon(
         gw_obj = pulp.lpSum(xp(e, g) * start[e][g] for e in ids)
         gw_obj += cap_mult * pulp.lpSum(xp(e, g) * capt[e][g] for e in ids)
         gw_obj += bw * pulp.lpSum(xp(e, g) * (own[e][g] - start[e][g]) for e in ids)
-        gw_obj -= HIT_COST * hits[g]
+        gw_obj -= hit_penalty * hits[g]
         obj_terms.append(w * gw_obj)
 
     # Discourage churn: a free transfer must clear a small threshold of xP gain,

@@ -323,14 +323,12 @@ def project(cfg: dict | None = None, *, horizon_events: list[int] | None = None)
                 gw_xp += max(0.0, min(params.max_fixture_xp, fx_xp))
             per_gw.append(round(gw_xp, 3))
 
-        # Blend every GW toward FPL's own ep_next (≈ recent form), weighting the
-        # anchor harder only when we have almost no sample of our own. Keyed off
-        # a fixed 180-min cutoff, not shrink_minutes — early season every
-        # nailed starter sits under shrink_minutes and form would dominate.
+        # Blend every GW toward FPL's own ep_next (≈ recent form) at a flat,
+        # low weight. No extra weight for thin samples: after GW1 everyone has
+        # ≤90 min, and leaning on one game's points drove a 7-transfer hit
+        # spree in the GW1-5 backtest. Thin samples already shrink to priors.
         api_ep = _f(p, "ep_next")
-        minutes = _f(p, "minutes")
-        thin = 90.0 / (minutes + 90.0) if minutes < 180 else 0.0
-        w0 = min(0.9, params.api_anchor_weight + (1 - params.api_anchor_weight) * thin)
+        w0 = params.api_anchor_weight
         for i in range(len(per_gw)):
             # Anchor fades across the horizon (ep_next only really speaks to GW+1).
             w = w0 * (0.72 ** i)

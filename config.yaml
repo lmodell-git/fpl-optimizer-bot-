@@ -30,6 +30,8 @@ transfers:
   bench_weight: 0.15
   time_limit: 90        # CBC seconds per horizon solve
   churn_penalty: 0.30   # min xP a free transfer must gain before the solver makes it
+  hit_penalty: 8.0      # what the solver charges itself per -4 hit (margin for projection error)
+  max_hits_per_gw: 1    # never recommend more than one hit in a gameweek
   chip_scan_gws: 3      # try each chip in each of the next N GWs when ranking chip timing
   pool_gkp: 8           # player-universe caps per position (plus everyone you own)
   pool_def: 32
