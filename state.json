@@ -81,7 +81,7 @@
   "free_transfers": 1,
   "chips_used": [],
   "last_event_processed": 6,
-  "overall_rank": 10040785,
+  "overall_rank": 10040661,
   "history": [
     {
       "ts": "2026-09-03T15:38:56+00:00",
@@ -163,8 +163,17 @@
       "captain": "Saka",
       "hits": 1,
       "claude_verdict": "unavailable"
+    },
+    {
+      "ts": "2026-10-10T08:19:19+00:00",
+      "event": 6,
+      "mode": "transfer",
+      "stage": "final",
+      "captain": "B.Fernandes",
+      "hits": 0,
+      "claude_verdict": "unavailable"
     }
   ],
   "notified_event": 6,
-  "notified_final": false
+  "notified_final": true
 }
