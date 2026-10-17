@@ -29,12 +29,12 @@
     {
       "element": 426,
       "purchase_price": 120,
-      "selling_price": 119
+      "selling_price": 118
     },
     {
       "element": 368,
       "purchase_price": 70,
-      "selling_price": 69
+      "selling_price": 68
     },
     {
       "element": 12,
@@ -44,12 +44,12 @@
     {
       "element": 565,
       "purchase_price": 57,
-      "selling_price": 56
+      "selling_price": 55
     },
     {
       "element": 411,
       "purchase_price": 155,
-      "selling_price": 155
+      "selling_price": 156
     },
     {
       "element": 316,
@@ -86,7 +86,7 @@
     }
   ],
   "last_event_processed": 7,
-  "overall_rank": 10063849,
+  "overall_rank": 10063772,
   "history": [
     {
       "ts": "2026-09-03T15:38:56+00:00",
@@ -186,8 +186,17 @@
       "captain": "Haaland",
       "hits": 0,
       "claude_verdict": "unavailable"
+    },
+    {
+      "ts": "2026-10-17T08:27:14+00:00",
+      "event": 7,
+      "mode": "transfer",
+      "stage": "final",
+      "captain": "Haaland",
+      "hits": 0,
+      "claude_verdict": "unavailable"
     }
   ],
   "notified_event": 7,
-  "notified_final": false
+  "notified_final": true
 }
