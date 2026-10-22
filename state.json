@@ -9,7 +9,7 @@
     {
       "element": 8,
       "purchase_price": 56,
-      "selling_price": 57
+      "selling_price": 58
     },
     {
       "element": 330,
@@ -19,7 +19,7 @@
     {
       "element": 115,
       "purchase_price": 47,
-      "selling_price": 49
+      "selling_price": 50
     },
     {
       "element": 391,
@@ -32,19 +32,14 @@
       "selling_price": 118
     },
     {
-      "element": 368,
-      "purchase_price": 70,
-      "selling_price": 68
+      "element": 124,
+      "purchase_price": 62,
+      "selling_price": 62
     },
     {
       "element": 12,
       "purchase_price": 96,
       "selling_price": 96
-    },
-    {
-      "element": 565,
-      "purchase_price": 57,
-      "selling_price": 55
     },
     {
       "element": 411,
@@ -57,14 +52,19 @@
       "selling_price": 55
     },
     {
+      "element": 346,
+      "purchase_price": 60,
+      "selling_price": 60
+    },
+    {
       "element": 497,
       "purchase_price": 40,
       "selling_price": 40
     },
     {
-      "element": 346,
-      "purchase_price": 60,
-      "selling_price": 60
+      "element": 565,
+      "purchase_price": 57,
+      "selling_price": 55
     },
     {
       "element": 290,
@@ -74,10 +74,10 @@
     {
       "element": 259,
       "purchase_price": 40,
-      "selling_price": 40
+      "selling_price": 39
     }
   ],
-  "bank": 0,
+  "bank": 7,
   "free_transfers": 2,
   "chips_used": [
     {
@@ -85,8 +85,8 @@
       "event": 6
     }
   ],
-  "last_event_processed": 7,
-  "overall_rank": 10063772,
+  "last_event_processed": 8,
+  "overall_rank": 9820764,
   "history": [
     {
       "ts": "2026-09-03T15:38:56+00:00",
@@ -195,8 +195,17 @@
       "captain": "Haaland",
       "hits": 0,
       "claude_verdict": "unavailable"
+    },
+    {
+      "ts": "2026-10-22T19:53:00+00:00",
+      "event": 8,
+      "mode": "transfer",
+      "stage": "opening",
+      "captain": "Haaland",
+      "hits": 0,
+      "claude_verdict": "unavailable"
     }
   ],
-  "notified_event": 7,
-  "notified_final": true
+  "notified_event": 8,
+  "notified_final": false
 }
