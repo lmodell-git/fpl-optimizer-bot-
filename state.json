@@ -29,7 +29,7 @@
     {
       "element": 399,
       "purchase_price": 80,
-      "selling_price": 80
+      "selling_price": 79
     },
     {
       "element": 124,
@@ -78,15 +78,15 @@
     }
   ],
   "bank": 10,
-  "free_transfers": 1,
+  "free_transfers": 2,
   "chips_used": [
     {
       "chip": "freehit",
       "event": 6
     }
   ],
-  "last_event_processed": 9,
-  "overall_rank": 9811810,
+  "last_event_processed": 10,
+  "overall_rank": 9842548,
   "history": [
     {
       "ts": "2026-09-03T15:38:56+00:00",
@@ -231,8 +231,17 @@
       "captain": "Haaland",
       "hits": 0,
       "claude_verdict": "unavailable"
+    },
+    {
+      "ts": "2026-11-05T18:38:19+00:00",
+      "event": 10,
+      "mode": "transfer",
+      "stage": "opening",
+      "captain": "Gabriel",
+      "hits": 0,
+      "claude_verdict": "unavailable"
     }
   ],
-  "notified_event": 9,
-  "notified_final": true
+  "notified_event": 10,
+  "notified_final": false
 }
