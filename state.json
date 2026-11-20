@@ -12,9 +12,14 @@
       "selling_price": 57
     },
     {
+      "element": 330,
+      "purchase_price": 46,
+      "selling_price": 47
+    },
+    {
       "element": 115,
       "purchase_price": 47,
-      "selling_price": 50
+      "selling_price": 51
     },
     {
       "element": 391,
@@ -22,14 +27,9 @@
       "selling_price": 56
     },
     {
-      "element": 330,
-      "purchase_price": 46,
-      "selling_price": 47
-    },
-    {
-      "element": 399,
-      "purchase_price": 80,
-      "selling_price": 79
+      "element": 4,
+      "purchase_price": 81,
+      "selling_price": 81
     },
     {
       "element": 124,
@@ -37,9 +37,9 @@
       "selling_price": 62
     },
     {
-      "element": 565,
-      "purchase_price": 57,
-      "selling_price": 54
+      "element": 183,
+      "purchase_price": 49,
+      "selling_price": 49
     },
     {
       "element": 411,
@@ -49,7 +49,7 @@
     {
       "element": 379,
       "purchase_price": 91,
-      "selling_price": 91
+      "selling_price": 92
     },
     {
       "element": 346,
@@ -62,9 +62,9 @@
       "selling_price": 40
     },
     {
-      "element": 12,
-      "purchase_price": 96,
-      "selling_price": 95
+      "element": 565,
+      "purchase_price": 57,
+      "selling_price": 54
     },
     {
       "element": 290,
@@ -72,21 +72,21 @@
       "selling_price": 45
     },
     {
-      "element": 259,
-      "purchase_price": 40,
-      "selling_price": 39
+      "element": 399,
+      "purchase_price": 80,
+      "selling_price": 79
     }
   ],
-  "bank": 10,
-  "free_transfers": 2,
+  "bank": 15,
+  "free_transfers": 1,
   "chips_used": [
     {
       "chip": "freehit",
       "event": 6
     }
   ],
-  "last_event_processed": 10,
-  "overall_rank": 9842548,
+  "last_event_processed": 11,
+  "overall_rank": 9671231,
   "history": [
     {
       "ts": "2026-09-03T15:38:56+00:00",
@@ -240,8 +240,17 @@
       "captain": "Gabriel",
       "hits": 0,
       "claude_verdict": "unavailable"
+    },
+    {
+      "ts": "2026-11-20T11:11:31+00:00",
+      "event": 11,
+      "mode": "transfer",
+      "stage": "opening",
+      "captain": "Haaland",
+      "hits": 0,
+      "claude_verdict": "unavailable"
     }
   ],
-  "notified_event": 10,
+  "notified_event": 11,
   "notified_final": false
 }
