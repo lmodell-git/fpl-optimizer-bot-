@@ -59,7 +59,7 @@
     {
       "element": 497,
       "purchase_price": 40,
-      "selling_price": 40
+      "selling_price": 39
     },
     {
       "element": 565,
@@ -86,7 +86,7 @@
     }
   ],
   "last_event_processed": 11,
-  "overall_rank": 9671231,
+  "overall_rank": 9671100,
   "history": [
     {
       "ts": "2026-09-03T15:38:56+00:00",
@@ -249,8 +249,17 @@
       "captain": "Haaland",
       "hits": 0,
       "claude_verdict": "unavailable"
+    },
+    {
+      "ts": "2026-11-21T09:28:48+00:00",
+      "event": 11,
+      "mode": "transfer",
+      "stage": "final",
+      "captain": "Haaland",
+      "hits": 0,
+      "claude_verdict": "unavailable"
     }
   ],
   "notified_event": 11,
-  "notified_final": false
+  "notified_final": true
 }
