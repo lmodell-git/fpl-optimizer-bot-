@@ -86,7 +86,7 @@
     }
   ],
   "last_event_processed": 12,
-  "overall_rank": 9581166,
+  "overall_rank": 9581086,
   "history": [
     {
       "ts": "2026-09-03T15:38:56+00:00",
@@ -267,8 +267,17 @@
       "captain": "E.Le F\u00e9e",
       "hits": 0,
       "claude_verdict": "unavailable"
+    },
+    {
+      "ts": "2026-11-27T17:59:46+00:00",
+      "event": 12,
+      "mode": "transfer",
+      "stage": "final",
+      "captain": "E.Le F\u00e9e",
+      "hits": 0,
+      "claude_verdict": "unavailable"
     }
   ],
   "notified_event": 12,
-  "notified_final": false
+  "notified_final": true
 }
